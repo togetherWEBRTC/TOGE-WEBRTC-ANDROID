@@ -1,0 +1,93 @@
+<resources>
+    <string name="app_name">TogetherAndroid</string>
+    <string name="together">Together</string>
+
+<!--    COMMON 일반-->
+    <string name="ok">확인</string>
+    <string name="cancel">취소</string>
+    <string name="yes">예</string>
+    <string name="no">아니요</string>
+    <string name="close">닫기</string>
+    <string name="delete">삭제</string>
+    <string name="edit">수정</string>
+    <string name="save">저장</string>
+    <string name="login_expired">로그인이 해제되었습니다.\n다시 로그인해주세요.</string>
+    <string name="readey">준비중입니다.</string>
+    <string name="allow_permission">권한을 허용해주세요.</string>
+    <string name="camera">카메라</string>
+    <string name="microphone">마이크</string>
+    <string name="allow">허용</string>
+    <string name="error">오류</string>
+    <string name="approve">승인</string>
+    <string name="reject">거절</string>
+    <string name="notify">알림</string>
+    <string name="connection_problem">연결에 문제가 발생했습니다.</string>
+
+<!--    LOGIN 로그인-->
+    <string name="login">로그인</string>
+    <string name="logout">로그아웃</string>
+    <string name="signup">회원가입</string>
+    <string name="enter">입장</string>
+    <string name="fail_login">아이디와 비밀번호를 확인해주세요.</string>
+    <string name="try_signup">회원가입하기</string>
+    <string name="find_password">비밀번호 찾기</string>
+    <string name="restart_prompt">새로 시작하시겠어요?</string>
+    <string name="signup_prompt">Together 가입하기</string>
+    <string name="session_expired">세션이 만료되었습니다.</string>
+
+<!--    SIGN UP 회원가입-->
+    <string name="id">아이디</string>
+    <string name="password">비밀번호</string>
+    <string name="input_id">아이디를 입력해주세요.</string>
+    <string name="input_id_duplicate">이미 존재하는 아이디에요.</string>
+    <string name="usable_id">아이디를 사용할 수 있어요.</string>
+    <string name="input_password">비밀번호를 입력해주세요.</string>
+    <string name="nickname">닉네임</string>
+    <string name="input_nickname">닉네임을 입력해주세요.</string>
+    <string name="input_nickname_hint">닉네임을 입력해주세요.</string>
+    <string name="password_confirm">비밀번호 확인</string>
+    <string name="input_password_confirm">비밀번호를 다시 입력해주세요.</string>
+    <string name="go_login">로그인으로 가기</string>
+    <string name="welcome">님\n환영합니다.</string>
+    <string name="check_id">중복확인</string>
+
+<!--    HOME 홈-->
+    <string name="active_call">새 통화</string>
+    <string name="input_code">코드를 입력해주세요</string>
+    <string name="need_login">로그인 후 이용해주세요.</string>
+
+<!--    MY PAGE 마이페이지-->
+    <string name="my_page">마이페이지</string>
+    <string name="my_profile">내 프로필</string>
+    <string name="my_profile_edit">프로필 이미지 변경</string>
+    <string name="my_profile_edit_prompt">프로필 이미지를 변경하시겠어요?\n무작위로 변경이 진행됩니다.</string>
+    <string name="my_profile_edit_success">프로필 이미지 변경이 완료되었습니다.</string>
+    <string name="my_profile_edit_fail">프로필 이미지 변경에 실패했습니다.</string>
+    <string name="my_profile_delete">프로필 삭제</string>
+    <string name="my_profile_delete_prompt">정말로 프로필을 삭제하시겠어요?</string>
+    <string name="welcome_user_nickname">%1$s님, 어서오세요!</string>
+    <string name="changing_profile">변경하기</string>
+    <string name="password_description">더 강력한 보안을 위해 비밀번호를 업데이트하세요.</string>
+
+
+<!--    PERMISSIONS 권한-->
+    <string name="permission_call_required">통화 필요 권한</string>
+    <string name="permission_required">권한 필요</string>
+    <string name="permission_description_title">원활한 통화를 위해 아래의 권한이 필요합니다.</string>
+    <string name="permission_description_camera">카메라 : 영상을 송출하기 위해 필요합니다.</string>
+    <string name="permission_description_microphone">마이크 : 음성을 전달하기 위해 필요합니다.</string>
+    <string name="action_request_all_permissions">모든 권한 요청</string>
+    <string name="permissions_granted">권한 허용됨</string>
+    <string name="all_permissions_granted">모든 권한이 허용되었습니다.</string>
+    <string name="permission_settings_required">권한을 허용하기 위해서 설정화면으로 이동이 필요합니다.</string>
+
+<!--    CALLING 전화 통화-->
+    <string name="connection_failed">접속에 실패했습니다.</string>
+    <string name="invalid_code">유효한 코드가 아닙니다.</string>
+    <string name="failed_to_create_call">통화 생성에 실패했습니다.</string>
+    <string name="user_wants_to_join_call">%1$s님이 통화 참여를 원합니다.</string>
+    <string name="waiting_for_host_approval">통화 주최자의 승인이 필요합니다.\n잠시만 기다려주세요.</string>
+    <string name="confirm_cancel_waiting">입장 대기를 취소하시겠습니까?</string>
+    <string name="host_rejected_entry">통화 주최자가 입장을 거부했습니다.</string>
+    <string name="confirm_end_call">통화를 종료하시겠습니까?</string>
+</resources>
