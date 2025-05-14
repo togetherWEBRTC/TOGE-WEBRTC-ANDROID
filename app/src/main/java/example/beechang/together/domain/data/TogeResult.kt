@@ -1,6 +1,5 @@
 package example.beechang.together.domain.data
 
-import example.beechang.together.data.response.TogeResponse
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -47,49 +46,6 @@ fun <T, R> TogeResult<T>.map(mapping: (T) -> R): TogeResult<R> {
     return when (this) {
         is TogeResult.Success -> TogeResult.Success(mapping(data))
         is TogeResult.Error -> TogeResult.Error(togeError, msg, exception)
-    }
-}
-
-/**
- * [사용 전]
- * ```
- * val result = apiToResult { apiService.getData(id) }
- * val transformedResult = when (result) {
- *     is TogeResult.Success -> {
- *         if (result.data.toSuccessBoolean()) {
- *             TogeResult.Success(transformData(result.data))
- *         } else {
- *             TogeResult.Error(togeError = CustomError.DataProcessingError)
- *         }
- *     }
- *     is TogeResult.Error -> {
- *         TogeResult.Error(togeError = CustomError.DataProcessingError)
- *     }
- * }
- * ```
- *
- * [사용 후]
- * ```
- * val transformedResult = apiToResult { apiService.getData(id) }
- *     .mapSuccessOrProvideError(CustomError.DataProcessingError) { transformData(it) }
- * ```
- */
-fun <T : TogeResponse, R> TogeResult<T>.mapSuccessOrProvideError(
-    errorType: TogeError,
-    transform: (T) -> R
-): TogeResult<R> {
-    return when (this) {
-        is TogeResult.Success -> {
-            if (data.toSuccessBoolean()) {
-                TogeResult.Success(transform(data))
-            } else {
-                TogeResult.Error(togeError = errorType)
-            }
-        }
-
-        is TogeResult.Error -> {
-            TogeResult.Error(togeError = errorType)
-        }
     }
 }
 
