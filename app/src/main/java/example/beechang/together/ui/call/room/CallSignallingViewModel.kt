@@ -89,7 +89,7 @@ class CallSignallingViewModel @Inject constructor(
             }
 
             CallSignallingEvent.SwitchCamera -> {
-                webRtcManager.processAction(SwitchCamera(currentState.myUserId))
+                webRtcManager.processActionAsync(SwitchCamera(currentState.myUserId))
             }
 
             CallSignallingEvent.Disconnect -> {
@@ -153,10 +153,10 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun startWebRtc(userId: String = "") = viewModelScope.launch {
         webRtcManager = webRtcManagerFactory.create().apply {
-            processAction(InitWebRtc(if (userId.isNotEmpty()) userId else currentState.myUserId))
+            processActionAsync(InitWebRtc(if (userId.isNotEmpty()) userId else currentState.myUserId))
 
             if (currentState.isSpeakerMuted) {
-                processAction(
+                processActionAsync(
                     SetSpeakerMute(
                         userId = if (userId.isNotEmpty()) userId else currentState.myUserId,
                         isMuted = true
@@ -190,7 +190,7 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun toggleVideoEnabled(enabled: Boolean) = viewModelScope.launch {
         if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(
+            webRtcManager.processActionAsync(
                 ToggleVideo(userId = currentState.myUserId, enabled = enabled)
             )
         }
@@ -207,7 +207,7 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun toggleAudioEnabled(enabled: Boolean) = viewModelScope.launch {
         if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(
+            webRtcManager.processActionAsync(
                 ToggleAudio(userId = currentState.myUserId, enabled = enabled)
             )
         }
@@ -224,19 +224,19 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun refreshVideoData() {
         if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(RefreshVideo(currentState.myUserId))
+            webRtcManager.processActionAsync(RefreshVideo(currentState.myUserId))
         }
     }
 
     private fun refreshAudioData() {
         if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(RefreshAudio(currentState.myUserId))
+            webRtcManager.processActionAsync(RefreshAudio(currentState.myUserId))
         }
     }
 
     private fun toggleSpeakerMute(isMuted: Boolean) = viewModelScope.launch {
         if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(
+            webRtcManager.processActionAsync(
                 SetSpeakerMute(userId = currentState.myUserId, isMuted = isMuted)
             )
         }
@@ -281,7 +281,7 @@ class CallSignallingViewModel @Inject constructor(
                     }
 
                     if (!isJoined) { //remove webrtc user
-                        webRtcManager.processAction(RemoveParticipant(userId))
+                        webRtcManager.processActionAsync(RemoveParticipant(userId))
                     }
 
                     sendEffect(
@@ -318,7 +318,7 @@ class CallSignallingViewModel @Inject constructor(
             .collectInViewModel(
                 onSuccess = { res ->
                     viewModelScope.launch {
-                        webRtcManager.processAction(
+                        webRtcManager.processActionAsync(
                             CreatePeerConnection(
                                 userId = res.userId,
                                 role = PeerConnectionRole.Offerer
@@ -333,7 +333,7 @@ class CallSignallingViewModel @Inject constructor(
         receiveOfferUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    webRtcManager.processAction(
+                    webRtcManager.processActionAsync(
                         WebRtcAction.Signaling.SetOfferDescription(
                             userId = res.fromUserId,
                             sdp = res.sdp
@@ -347,7 +347,7 @@ class CallSignallingViewModel @Inject constructor(
         receiveAnswerUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    webRtcManager.processAction(
+                    webRtcManager.processActionAsync(
                         WebRtcAction.Signaling.SetAnswerDescription(
                             userId = res.fromUserId,
                             sdp = res.sdp
@@ -361,7 +361,7 @@ class CallSignallingViewModel @Inject constructor(
         receiveIceCandidateUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    webRtcManager.processAction(
+                    webRtcManager.processActionAsync(
                         WebRtcAction.Signaling.SetIceCandidate(
                             userId = res.fromUserId,
                             sdp = res.candidate,
