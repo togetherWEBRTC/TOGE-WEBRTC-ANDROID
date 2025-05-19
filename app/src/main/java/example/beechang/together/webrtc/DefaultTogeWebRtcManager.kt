@@ -63,93 +63,99 @@ class DefaultTogeWebRtcManager @Inject constructor(
     private var isSpeakerMuted: Boolean = false
 
     override fun processAction(action: WebRtcAction) {
-        when (action) {
-            is WebRtcAction.General -> processGeneralAction(action)
-            is WebRtcAction.Signaling -> processSignalingAction(action)
+        action.process()
+    }
+
+    override fun processActionAsync(action: WebRtcAction) {
+        coroutineScope.launch {
+            action.process()
+        }
+    }
+
+    private fun WebRtcAction.process() {
+        when (this) {
+            is WebRtcAction.General -> processGeneralAction(this)
+            is WebRtcAction.Signaling -> processSignalingAction(this)
         }
     }
 
     private fun processGeneralAction(action: WebRtcAction.General) {
-        coroutineScope.launch {
-            when (action) {
-                is WebRtcAction.General.InitWebRtc -> {
-                    initWebRtc(userId = action.userId)
-                }
+        when (action) {
+            is WebRtcAction.General.InitWebRtc -> {
+                initWebRtc(userId = action.userId)
+            }
 
-                is WebRtcAction.General.CreatePeerConnection -> {
-                    createPeerConnection(
-                        remoteUserId = action.userId,
-                        role = action.role
+            is WebRtcAction.General.CreatePeerConnection -> {
+                createPeerConnection(
+                    remoteUserId = action.userId,
+                    role = action.role
+                )
+            }
+
+            is WebRtcAction.General.SwitchCamera -> {
+                videoHandler.switchCamera()
+                updateParticipant(action.userId) { participant ->
+                    participant.copy(
+                        isFrontLocalCamera = videoHandler.getIsUsingFrontCamera()
                     )
                 }
+            }
 
-                is WebRtcAction.General.SwitchCamera -> {
-                    videoHandler.switchCamera()
-                    updateParticipant(action.userId) { participant ->
-                        participant.copy(
-                            isFrontLocalCamera = videoHandler.getIsUsingFrontCamera()
-                        )
-                    }
-                }
+            is WebRtcAction.General.RemoveParticipant -> {
+                removeParticipant(action.userId)
+            }
 
-                is WebRtcAction.General.RemoveParticipant -> {
-                    removeParticipant(action.userId)
-                }
+            is WebRtcAction.General.ToggleAudio -> {
+                localAudioTrack?.setEnabled(action.enabled)
+            }
 
-                is WebRtcAction.General.ToggleAudio -> {
-                    localAudioTrack?.setEnabled(action.enabled)
-                }
+            is WebRtcAction.General.ToggleVideo -> {
+                localVideoTrack?.setEnabled(action.enabled)
+            }
 
-                is WebRtcAction.General.ToggleVideo -> {
-                    localVideoTrack?.setEnabled(action.enabled)
-                }
+            is WebRtcAction.General.RefreshAudio -> {
+                refreshAudioTrack(action.userId)
+            }
 
-                is WebRtcAction.General.RefreshAudio -> {
-                    refreshAudioTrack(action.userId)
-                }
+            is WebRtcAction.General.RefreshVideo -> {
+                refreshVideoTrack(action.userId)
+            }
 
-                is WebRtcAction.General.RefreshVideo -> {
-                    refreshVideoTrack(action.userId)
-                }
-
-                is WebRtcAction.General.SetSpeakerMute -> {
-                    setSpeakerMute(action.userId, action.isMuted)
-                }
+            is WebRtcAction.General.SetSpeakerMute -> {
+                setSpeakerMute(action.userId, action.isMuted)
             }
         }
     }
 
     private fun processSignalingAction(action: WebRtcAction.Signaling) {
-        coroutineScope.launch {
-            when (action) {
-                is WebRtcAction.Signaling.SetIceCandidate -> {
-                    handleIceCandidate(
-                        userId = action.userId,
-                        sdp = action.sdp,
-                        sdpMid = action.sdpMid,
-                        sdpMLineIndex = action.sdpMLineIndex
-                    )
-                }
+        when (action) {
+            is WebRtcAction.Signaling.SetIceCandidate -> {
+                handleIceCandidate(
+                    userId = action.userId,
+                    sdp = action.sdp,
+                    sdpMid = action.sdpMid,
+                    sdpMLineIndex = action.sdpMLineIndex
+                )
+            }
 
-                is WebRtcAction.Signaling.SetOfferDescription -> {
-                    remoteUserPeerConnection[action.userId]?.let {
-                        //순서 중요 : PeerConnection cannot create an answer in a state other than have-remote-offer or have-local-pranswer.
-                        setRemoteDescription(
-                            remoteUserId = action.userId,
-                            sdp = action.sdp,
-                            isOffer = true
-                        )
-                        it.createAnswer()
-                    }
-                }
-
-                is WebRtcAction.Signaling.SetAnswerDescription -> {
+            is WebRtcAction.Signaling.SetOfferDescription -> {
+                remoteUserPeerConnection[action.userId]?.let {
+                    //순서 중요 : PeerConnection cannot create an answer in a state other than have-remote-offer or have-local-pranswer.
                     setRemoteDescription(
                         remoteUserId = action.userId,
                         sdp = action.sdp,
-                        isOffer = false
+                        isOffer = true
                     )
+                    it.createAnswer()
                 }
+            }
+
+            is WebRtcAction.Signaling.SetAnswerDescription -> {
+                setRemoteDescription(
+                    remoteUserId = action.userId,
+                    sdp = action.sdp,
+                    isOffer = false
+                )
             }
         }
     }

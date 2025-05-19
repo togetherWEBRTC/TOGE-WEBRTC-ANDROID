@@ -11,6 +11,7 @@ interface TogeWebRtcManager {
     val participantMapFlow: StateFlow<Map<String, WebRtcData>>
     val signallingEventFlow: SharedFlow<SignallingEvent>
     fun processAction(action: WebRtcAction)
+    fun processActionAsync(action: WebRtcAction)
     fun release()
 }
 
