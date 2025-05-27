@@ -87,7 +87,8 @@ class DefaultTogeWebRtcManager @Inject constructor(
 
             is WebRtcAction.General.CreatePeerConnection -> {
                 createPeerConnection(
-                    remoteUserId = action.userId,
+                    localUserId = action.localUserId,
+                    remoteUserId = action.remoteUserId,
                     role = action.role
                 )
             }
@@ -186,9 +187,15 @@ class DefaultTogeWebRtcManager @Inject constructor(
         }
     }
 
-    private fun createPeerConnection(remoteUserId: String, role: PeerConnectionRole) {
+    private fun createPeerConnection(
+        localUserId: String,
+        remoteUserId: String,
+        role: PeerConnectionRole
+    ) {
         val togePC = TogePeerConnection(
             pcf = pcf.pcf,
+            localUserId = localUserId,
+            remoteUserId = remoteUserId,
             updatedVideoTrack = { track ->
                 updateParticipant(remoteUserId) { participant -> participant.copy(videoTrack = track) }
                 setupVideoTrackResolutionObserver(track, remoteUserId)

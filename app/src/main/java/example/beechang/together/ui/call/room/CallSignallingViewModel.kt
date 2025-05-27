@@ -300,7 +300,8 @@ class CallSignallingViewModel @Inject constructor(
             if (it.value.userId != currentState.myUserId) {
                 webRtcManager.processAction(
                     CreatePeerConnection(
-                        userId = it.value.userId,
+                        localUserId = currentState.myUserId,
+                        remoteUserId = it.value.userId,
                         role = PeerConnectionRole.Answerer
                     )
                 )
@@ -320,7 +321,8 @@ class CallSignallingViewModel @Inject constructor(
                     viewModelScope.launch {
                         webRtcManager.processActionAsync(
                             CreatePeerConnection(
-                                userId = res.userId,
+                                localUserId = currentState.myUserId,
+                                remoteUserId = res.userId,
                                 role = PeerConnectionRole.Offerer
                             )
                         )

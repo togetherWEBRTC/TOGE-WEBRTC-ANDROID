@@ -17,6 +17,8 @@ import org.webrtc.VideoTrack
 
 class TogePeerConnection(
     private val pcf: PeerConnectionFactory,
+    private val localUserId: String,
+    private val remoteUserId: String,
     private val updatedVideoTrack: (VideoTrack) -> Unit,
     private val updatedAudioTrack: (AudioTrack) -> Unit,
     private val emitIceCandidate: (String/*sdp*/, String/*sdpMid*/, Int/*sdpMLineIndex*/) -> Unit,
@@ -34,6 +36,9 @@ class TogePeerConnection(
     private val turnServerUsername: String = BuildConfig.TURN_SERVER_USERNAME
     private val turnServerPassword: String = BuildConfig.TURN_SERVER_PASSWORD
 
+    private var makingOffer = false
+    private var ignoreOffer = false
+    private val isPolite = localUserId > remoteUserId
 
     private val iceTurnServer: List<PeerConnection.IceServer> by lazy {
         buildList {
