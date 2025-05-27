@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -59,7 +60,14 @@ fun CallRoomRouter(
     val cameraPermissionData = permissionHandler.permissionsData[Manifest.permission.CAMERA]
     val micPermissionData = permissionHandler.permissionsData[Manifest.permission.RECORD_AUDIO]
 
+    val hasInitialized = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
+        if (!hasInitialized.value) {
+            hasInitialized.value = true
+        } else {
+            return@LaunchedEffect
+        }
+
         signallingViewModel.onEvent(
             UpdateEnabledHardware(
                 isCameraOn = cameraPermissionData?.status == PermissionHandlerStatus.GRANTED,
@@ -189,12 +197,16 @@ fun CallRoomRouter(
             roomViewModel.onEvent(WebSocketDisconnect)
             signallingViewModel.onEvent(Disconnect)
         },
-        onEventSwitchShowDisconnectRoomDialog = { roomViewModel.onEvent(
-            SwitchShowDisconnectRoomDialog
-        ) },
-        onEventSwitchShowPermissionToSettingDialog = { roomViewModel.onEvent(
-            SwitchShowDialogPermission
-        ) },
+        onEventSwitchShowDisconnectRoomDialog = {
+            roomViewModel.onEvent(
+                SwitchShowDisconnectRoomDialog
+            )
+        },
+        onEventSwitchShowPermissionToSettingDialog = {
+            roomViewModel.onEvent(
+                SwitchShowDialogPermission
+            )
+        },
         onEventSwitchCamera = { signallingViewModel.onEvent(SwitchCamera) },
         onEventToggleOnOffCamera = handleToggleCamera,
         onEventToggleOnOffMic = handleToggleMic,
