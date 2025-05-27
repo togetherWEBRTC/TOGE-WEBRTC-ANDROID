@@ -62,10 +62,10 @@ fun CallRoomRouter(
 
     val hasInitialized = rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (!hasInitialized.value) {
-            hasInitialized.value = true
-        } else {
+        if (hasInitialized.value) {
             return@LaunchedEffect
+        } else {
+            hasInitialized.value = true
         }
 
         signallingViewModel.onEvent(
