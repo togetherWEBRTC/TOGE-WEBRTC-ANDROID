@@ -87,14 +87,15 @@ class TogePeerConnection(
     fun createAnswer() {
         peerConnection.createAnswer(
             sdpObserver(
-            onCreateSuccess = {
-                it?.let { sessionDescription ->
-                    val description = it.description
-                    answer = it
-                    setLocalDescription(sdp = description, isOffer = false)
-                    sendAnswer.invoke(description)
-                }
-            }), constraints)
+                onCreateSuccess = {
+                    it?.let { sessionDescription ->
+                        val description = it.description
+                        answer = it
+                        setLocalDescription(sdp = description, isOffer = false)
+                        sendAnswer.invoke(description)
+                    }
+                }), constraints
+        )
     }
 
     fun createOffer() {
@@ -102,16 +103,17 @@ class TogePeerConnection(
         peerConnection.createOffer(
             sdpObserver(
                 onCreateSuccess = {
-            it?.let { sessionDescription ->
-                val description = sessionDescription.description
-                offer = sessionDescription
-                setLocalDescription(sdp = description, isOffer = true)
-                sendOffer.invoke(description)
-            }
-        },
-            onSetSuccess = { makingOffer = false },
-            onCreateFailure = { error -> makingOffer = false },
-            onSetFailure = { error -> makingOffer = false }), constraints)
+                    it?.let { sessionDescription ->
+                        val description = sessionDescription.description
+                        offer = sessionDescription
+                        setLocalDescription(sdp = description, isOffer = true)
+                        sendOffer.invoke(description)
+                    }
+                },
+                onSetSuccess = { makingOffer = false },
+                onCreateFailure = { error -> makingOffer = false },
+                onSetFailure = { error -> makingOffer = false }), constraints
+        )
     }
 
     fun setLocalDescription(sdp: String, isOffer: Boolean) {
@@ -121,7 +123,7 @@ class TogePeerConnection(
         peerConnection.setLocalDescription(sdpObserver(), sessionDescription)
     }
 
-    fun setRemoteDescription(sdp: String, isOffer: Boolean) {
+    fun setRemoteDescription(sdp: String, isOffer: Boolean, onSetSuccess: () -> Unit = {}) {
         if (isOffer) {
             val offerCollision =
                 peerConnection.signalingState() != SignalingState.STABLE || makingOffer
@@ -134,11 +136,12 @@ class TogePeerConnection(
             if (isPolite && offerCollision) {
                 peerConnection.setLocalDescription(
                     sdpObserver(onSetSuccess = {
-                    makingOffer = false
-                    setRemoteOfferAfterRollback(sdp)
-                }, onSetFailure = { res ->
-                    makingOffer = false
-                }), SessionDescription(SessionDescription.Type.ROLLBACK, ""))
+                        makingOffer = false
+                        setRemoteOfferAfterRollback(sdp)
+                    }, onSetFailure = { res ->
+                        makingOffer = false
+                    }), SessionDescription(SessionDescription.Type.ROLLBACK, "")
+                )
                 return
             }
         }
@@ -150,6 +153,7 @@ class TogePeerConnection(
             sdpObserver(
                 onSetSuccess = {
                     isRemoteDescriptionSet = true
+                    onSetSuccess()
                 },
             ), sessionDescription
         )
