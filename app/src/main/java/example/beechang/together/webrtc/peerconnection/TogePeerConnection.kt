@@ -30,25 +30,22 @@ class TogePeerConnection(
     private lateinit var offer: SessionDescription
     private lateinit var answer: SessionDescription
 
-    private var isRemoteDiscriptionSet: Boolean = false
+    private var isRemoteDescriptionSet: Boolean = false
 
-    private val tunserver: String  = BuildConfig.TURN_SERVER_URL
+    private val tunserver: String = BuildConfig.TURN_SERVER_URL
     private val turnServerUsername: String = BuildConfig.TURN_SERVER_USERNAME
     private val turnServerPassword: String = BuildConfig.TURN_SERVER_PASSWORD
 
     private var makingOffer = false
-    private var ignoreOffer = false
     private val isPolite = localUserId > remoteUserId
 
     private val iceTurnServer: List<PeerConnection.IceServer> by lazy {
         buildList {
             add(PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer())
-            if(tunserver.isNotEmpty() && turnServerUsername.isNotEmpty() && turnServerPassword.isNotEmpty()) {
+            if (tunserver.isNotEmpty() && turnServerUsername.isNotEmpty() && turnServerPassword.isNotEmpty()) {
                 add(
-                    PeerConnection.IceServer.builder(tunserver)
-                        .setUsername(turnServerUsername)
-                        .setPassword(turnServerPassword)
-                        .createIceServer()
+                    PeerConnection.IceServer.builder(tunserver).setUsername(turnServerUsername)
+                        .setPassword(turnServerPassword).createIceServer()
                 )
             }
         }
@@ -62,11 +59,11 @@ class TogePeerConnection(
 
     val constraints = MediaConstraints()
 
-    fun hasRemoteDescription(): Boolean = isRemoteDiscriptionSet
+    fun hasRemoteDescription(): Boolean = isRemoteDescriptionSet
 
     fun isFinishedOfferAnswerExchange(): Boolean {
         return if (this::peerConnection.isInitialized) {
-            peerConnection.signalingState() == SignalingState.STABLE && isRemoteDiscriptionSet
+            peerConnection.signalingState() == SignalingState.STABLE && isRemoteDescriptionSet
         } else {
             false
         }
@@ -89,57 +86,73 @@ class TogePeerConnection(
 
     fun createAnswer() {
         peerConnection.createAnswer(
-            object : SdpObserver {
-                override fun onCreateSuccess(sessionDescription: SessionDescription?) {
-                    sessionDescription?.let {
-                        val description = it.description
-                        answer = it
-                        setLocalDescription(sdp = description, isOffer = false)
-                        sendAnswer.invoke(description)
-                    }
+            sdpObserver(
+            onCreateSuccess = {
+                it?.let { sessionDescription ->
+                    val description = it.description
+                    answer = it
+                    setLocalDescription(sdp = description, isOffer = false)
+                    sendAnswer.invoke(description)
                 }
-
-                override fun onSetSuccess() {}
-                override fun onCreateFailure(p0: String?) {}
-                override fun onSetFailure(p0: String?) {}
-            }, constraints
-        )
+            }), constraints)
     }
 
     fun createOffer() {
+        makingOffer = true
         peerConnection.createOffer(
-            object : SdpObserver {
-                override fun onCreateSuccess(sessionDescription: SessionDescription?) {
-                    sessionDescription?.let {
-                        val description = it.description
-                        offer = it
-                        setLocalDescription(sdp = description, isOffer = true)
-                        sendOffer.invoke(description)
-                    }
-                }
-
-                override fun onSetSuccess() {}
-                override fun onCreateFailure(p0: String?) {}
-                override fun onSetFailure(p0: String?) {}
-            }, constraints
-        )
+            sdpObserver(
+                onCreateSuccess = {
+            it?.let { sessionDescription ->
+                val description = sessionDescription.description
+                offer = sessionDescription
+                setLocalDescription(sdp = description, isOffer = true)
+                sendOffer.invoke(description)
+            }
+        },
+            onSetSuccess = { makingOffer = false },
+            onCreateFailure = { error -> makingOffer = false },
+            onSetFailure = { error -> makingOffer = false }), constraints)
     }
 
     fun setLocalDescription(sdp: String, isOffer: Boolean) {
         val sessionDescription = SessionDescription(
-            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER,
-            sdp
+            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER, sdp
         )
         peerConnection.setLocalDescription(sdpObserver(), sessionDescription)
     }
 
     fun setRemoteDescription(sdp: String, isOffer: Boolean) {
+        if (isOffer) {
+            val offerCollision =
+                peerConnection.signalingState() != SignalingState.STABLE || makingOffer
+            val ignoreOffer = !isPolite && offerCollision
+
+            if (ignoreOffer) {
+                return
+            }
+
+            if (isPolite && offerCollision) {
+                peerConnection.setLocalDescription(
+                    sdpObserver(onSetSuccess = {
+                    makingOffer = false
+                    setRemoteOfferAfterRollback(sdp)
+                }, onSetFailure = { res ->
+                    makingOffer = false
+                }), SessionDescription(SessionDescription.Type.ROLLBACK, ""))
+                return
+            }
+        }
+
         val sessionDescription = SessionDescription(
-            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER,
-            sdp
+            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER, sdp
         )
-        peerConnection.setRemoteDescription(sdpObserver(), sessionDescription)
-        isRemoteDiscriptionSet = true
+        peerConnection.setRemoteDescription(
+            sdpObserver(
+                onSetSuccess = {
+                    isRemoteDescriptionSet = true
+                },
+            ), sessionDescription
+        )
     }
 
     fun setIceCandidate(sdp: String, sdpMid: String, sdpMLineIndex: Int) =
@@ -182,11 +195,15 @@ class TogePeerConnection(
             if (!isFinishedOfferAnswerExchange()) {
                 return
             }
-
             createOffer()
         }
 
-        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
+        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
+            if (p0 == SignalingState.STABLE) {
+                makingOffer = false
+            }
+        }
+
         override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {}
         override fun onIceConnectionReceivingChange(p0: Boolean) {}
         override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {}
@@ -217,5 +234,12 @@ class TogePeerConnection(
         override fun onSetFailure(p0: String?) {
             onSetFailure(p0)
         }
+    }
+
+    private fun setRemoteOfferAfterRollback(sdp: String) {
+        val sessionDescription = SessionDescription(SessionDescription.Type.OFFER, sdp)
+        peerConnection.setRemoteDescription(
+            sdpObserver(onSetSuccess = { isRemoteDescriptionSet = true }), sessionDescription
+        )
     }
 }
