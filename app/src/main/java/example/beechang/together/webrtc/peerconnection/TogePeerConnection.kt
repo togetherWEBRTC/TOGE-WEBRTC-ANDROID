@@ -7,6 +7,7 @@ import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
+import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnection.SignalingState
 import org.webrtc.PeerConnectionFactory
@@ -29,6 +30,7 @@ class TogePeerConnection(
     private lateinit var peerConnection: PeerConnection
     private lateinit var offer: SessionDescription
     private lateinit var answer: SessionDescription
+    private val localStreamIdList: List<String> = listOf("${localUserId}_stream_id")
 
     private var isRemoteDescriptionSet: Boolean = false
 
@@ -75,13 +77,27 @@ class TogePeerConnection(
     }
 
     fun addLocalVideoTrack(localVideoTrack: VideoTrack? = null) {
-        localVideoTrack?.let {
-            peerConnection.addTrack(it)
+        localVideoTrack?.let { newTrack ->
+            val videoSender = peerConnection.senders
+                .find { it.track()?.kind() == MediaStreamTrack.VIDEO_TRACK_KIND }
+
+            when (videoSender) {
+                null -> peerConnection.addTrack(newTrack, localStreamIdList)
+                else -> videoSender.setTrack(newTrack, true) // track update
+            }
         }
     }
 
     fun addLocalAudioTrack(localAudioTrack: AudioTrack? = null) {
-        localAudioTrack?.let { peerConnection.addTrack(it) }
+        localAudioTrack?.let { newTrack ->
+            val audioSender = peerConnection.senders
+                .find { it.track()?.kind() == MediaStreamTrack.AUDIO_TRACK_KIND }
+
+            when (audioSender) {
+                null -> peerConnection.addTrack(newTrack, localStreamIdList) // add new audio track
+                else -> audioSender.setTrack(newTrack, true) // track update
+            }
+        }
     }
 
     fun createAnswer() {
