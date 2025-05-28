@@ -7,6 +7,7 @@ import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
 import org.webrtc.MediaConstraints
 import org.webrtc.MediaStream
+import org.webrtc.MediaStreamTrack
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnection.SignalingState
 import org.webrtc.PeerConnectionFactory
@@ -17,6 +18,8 @@ import org.webrtc.VideoTrack
 
 class TogePeerConnection(
     private val pcf: PeerConnectionFactory,
+    private val localUserId: String,
+    private val remoteUserId: String,
     private val updatedVideoTrack: (VideoTrack) -> Unit,
     private val updatedAudioTrack: (AudioTrack) -> Unit,
     private val emitIceCandidate: (String/*sdp*/, String/*sdpMid*/, Int/*sdpMLineIndex*/) -> Unit,
@@ -27,23 +30,24 @@ class TogePeerConnection(
     private lateinit var peerConnection: PeerConnection
     private lateinit var offer: SessionDescription
     private lateinit var answer: SessionDescription
+    private val localStreamIdList: List<String> = listOf("${localUserId}_stream_id")
 
-    private var isRemoteDiscriptionSet: Boolean = false
+    private var isRemoteDescriptionSet: Boolean = false
 
-    private val tunserver: String  = BuildConfig.TURN_SERVER_URL
+    private val tunserver: String = BuildConfig.TURN_SERVER_URL
     private val turnServerUsername: String = BuildConfig.TURN_SERVER_USERNAME
     private val turnServerPassword: String = BuildConfig.TURN_SERVER_PASSWORD
 
+    private var makingOffer = false
+    private val isPolite = localUserId > remoteUserId
 
     private val iceTurnServer: List<PeerConnection.IceServer> by lazy {
         buildList {
             add(PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer())
-            if(tunserver.isNotEmpty() && turnServerUsername.isNotEmpty() && turnServerPassword.isNotEmpty()) {
+            if (tunserver.isNotEmpty() && turnServerUsername.isNotEmpty() && turnServerPassword.isNotEmpty()) {
                 add(
-                    PeerConnection.IceServer.builder(tunserver)
-                        .setUsername(turnServerUsername)
-                        .setPassword(turnServerPassword)
-                        .createIceServer()
+                    PeerConnection.IceServer.builder(tunserver).setUsername(turnServerUsername)
+                        .setPassword(turnServerPassword).createIceServer()
                 )
             }
         }
@@ -57,11 +61,11 @@ class TogePeerConnection(
 
     val constraints = MediaConstraints()
 
-    fun hasRemoteDescription(): Boolean = isRemoteDiscriptionSet
+    fun hasRemoteDescription(): Boolean = isRemoteDescriptionSet
 
     fun isFinishedOfferAnswerExchange(): Boolean {
         return if (this::peerConnection.isInitialized) {
-            peerConnection.signalingState() == SignalingState.STABLE && isRemoteDiscriptionSet
+            peerConnection.signalingState() == SignalingState.STABLE && isRemoteDescriptionSet
         } else {
             false
         }
@@ -73,68 +77,102 @@ class TogePeerConnection(
     }
 
     fun addLocalVideoTrack(localVideoTrack: VideoTrack? = null) {
-        localVideoTrack?.let {
-            peerConnection.addTrack(it)
+        localVideoTrack?.let { newTrack ->
+            val videoSender = peerConnection.senders
+                .find { it.track()?.kind() == MediaStreamTrack.VIDEO_TRACK_KIND }
+
+            when (videoSender) {
+                null -> peerConnection.addTrack(newTrack, localStreamIdList)
+                else -> videoSender.setTrack(newTrack, true) // track update
+            }
         }
     }
 
     fun addLocalAudioTrack(localAudioTrack: AudioTrack? = null) {
-        localAudioTrack?.let { peerConnection.addTrack(it) }
+        localAudioTrack?.let { newTrack ->
+            val audioSender = peerConnection.senders
+                .find { it.track()?.kind() == MediaStreamTrack.AUDIO_TRACK_KIND }
+
+            when (audioSender) {
+                null -> peerConnection.addTrack(newTrack, localStreamIdList) // add new audio track
+                else -> audioSender.setTrack(newTrack, true) // track update
+            }
+        }
     }
 
     fun createAnswer() {
         peerConnection.createAnswer(
-            object : SdpObserver {
-                override fun onCreateSuccess(sessionDescription: SessionDescription?) {
-                    sessionDescription?.let {
+            sdpObserver(
+                onCreateSuccess = {
+                    it?.let { sessionDescription ->
                         val description = it.description
                         answer = it
                         setLocalDescription(sdp = description, isOffer = false)
                         sendAnswer.invoke(description)
                     }
-                }
-
-                override fun onSetSuccess() {}
-                override fun onCreateFailure(p0: String?) {}
-                override fun onSetFailure(p0: String?) {}
-            }, constraints
+                }), constraints
         )
     }
 
     fun createOffer() {
+        makingOffer = true
         peerConnection.createOffer(
-            object : SdpObserver {
-                override fun onCreateSuccess(sessionDescription: SessionDescription?) {
-                    sessionDescription?.let {
-                        val description = it.description
-                        offer = it
+            sdpObserver(
+                onCreateSuccess = {
+                    it?.let { sessionDescription ->
+                        val description = sessionDescription.description
+                        offer = sessionDescription
                         setLocalDescription(sdp = description, isOffer = true)
                         sendOffer.invoke(description)
                     }
-                }
-
-                override fun onSetSuccess() {}
-                override fun onCreateFailure(p0: String?) {}
-                override fun onSetFailure(p0: String?) {}
-            }, constraints
+                },
+                onSetSuccess = { makingOffer = false },
+                onCreateFailure = { error -> makingOffer = false },
+                onSetFailure = { error -> makingOffer = false }), constraints
         )
     }
 
     fun setLocalDescription(sdp: String, isOffer: Boolean) {
         val sessionDescription = SessionDescription(
-            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER,
-            sdp
+            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER, sdp
         )
         peerConnection.setLocalDescription(sdpObserver(), sessionDescription)
     }
 
-    fun setRemoteDescription(sdp: String, isOffer: Boolean) {
+    fun setRemoteDescription(sdp: String, isOffer: Boolean, onSetSuccess: () -> Unit = {}) {
+        if (isOffer) {
+            val offerCollision =
+                peerConnection.signalingState() != SignalingState.STABLE || makingOffer
+            val ignoreOffer = !isPolite && offerCollision
+
+            if (ignoreOffer) {
+                return
+            }
+
+            if (isPolite && offerCollision) {
+                peerConnection.setLocalDescription(
+                    sdpObserver(onSetSuccess = {
+                        makingOffer = false
+                        setRemoteOfferAfterRollback(sdp)
+                    }, onSetFailure = { res ->
+                        makingOffer = false
+                    }), SessionDescription(SessionDescription.Type.ROLLBACK, "")
+                )
+                return
+            }
+        }
+
         val sessionDescription = SessionDescription(
-            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER,
-            sdp
+            if (isOffer) SessionDescription.Type.OFFER else SessionDescription.Type.ANSWER, sdp
         )
-        peerConnection.setRemoteDescription(sdpObserver(), sessionDescription)
-        isRemoteDiscriptionSet = true
+        peerConnection.setRemoteDescription(
+            sdpObserver(
+                onSetSuccess = {
+                    isRemoteDescriptionSet = true
+                    onSetSuccess()
+                },
+            ), sessionDescription
+        )
     }
 
     fun setIceCandidate(sdp: String, sdpMid: String, sdpMLineIndex: Int) =
@@ -177,11 +215,15 @@ class TogePeerConnection(
             if (!isFinishedOfferAnswerExchange()) {
                 return
             }
-
             createOffer()
         }
 
-        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {}
+        override fun onSignalingChange(p0: PeerConnection.SignalingState?) {
+            if (p0 == SignalingState.STABLE) {
+                makingOffer = false
+            }
+        }
+
         override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {}
         override fun onIceConnectionReceivingChange(p0: Boolean) {}
         override fun onIceGatheringChange(p0: PeerConnection.IceGatheringState?) {}
@@ -212,5 +254,12 @@ class TogePeerConnection(
         override fun onSetFailure(p0: String?) {
             onSetFailure(p0)
         }
+    }
+
+    private fun setRemoteOfferAfterRollback(sdp: String) {
+        val sessionDescription = SessionDescription(SessionDescription.Type.OFFER, sdp)
+        peerConnection.setRemoteDescription(
+            sdpObserver(onSetSuccess = { isRemoteDescriptionSet = true }), sessionDescription
+        )
     }
 }

@@ -55,7 +55,12 @@ sealed interface WebRtcAction {
 
     sealed interface General : WebRtcAction {
         data class InitWebRtc(val userId: String) : General
-        data class CreatePeerConnection(val userId: String, val role: PeerConnectionRole) : General
+        data class CreatePeerConnection(
+            val localUserId: String,
+            val remoteUserId: String,
+            val role: PeerConnectionRole
+        ) : General
+
         data class SwitchCamera(val userId: String) : General
         data class RemoveParticipant(val userId: String) : General
         data class ToggleVideo(val userId: String, val enabled: Boolean) : General

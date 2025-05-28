@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -87,7 +88,8 @@ class DefaultTogeWebRtcManager @Inject constructor(
 
             is WebRtcAction.General.CreatePeerConnection -> {
                 createPeerConnection(
-                    remoteUserId = action.userId,
+                    localUserId = action.localUserId,
+                    remoteUserId = action.remoteUserId,
                     role = action.role
                 )
             }
@@ -186,9 +188,15 @@ class DefaultTogeWebRtcManager @Inject constructor(
         }
     }
 
-    private fun createPeerConnection(remoteUserId: String, role: PeerConnectionRole) {
+    private fun createPeerConnection(
+        localUserId: String,
+        remoteUserId: String,
+        role: PeerConnectionRole
+    ) {
         val togePC = TogePeerConnection(
             pcf = pcf.pcf,
+            localUserId = localUserId,
+            remoteUserId = remoteUserId,
             updatedVideoTrack = { track ->
                 updateParticipant(remoteUserId) { participant -> participant.copy(videoTrack = track) }
                 setupVideoTrackResolutionObserver(track, remoteUserId)
@@ -391,11 +399,9 @@ class DefaultTogeWebRtcManager @Inject constructor(
     }
 
     private fun setRemoteDescription(remoteUserId: String, sdp: String, isOffer: Boolean) {
-        remoteUserPeerConnection[remoteUserId]?.setRemoteDescription(
-            sdp = sdp,
-            isOffer = isOffer
-        )
-        applyPendingIceCandidates(remoteUserId)
+        remoteUserPeerConnection[remoteUserId]?.setRemoteDescription(sdp = sdp, isOffer = isOffer) {
+            applyPendingIceCandidates(remoteUserId)
+        }
     }
 
     private fun applyPendingIceCandidates(userId: String) {
