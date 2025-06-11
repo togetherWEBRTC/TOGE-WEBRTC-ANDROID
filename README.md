@@ -14,7 +14,7 @@ Respository : <https://github.com/togetherWEBRTC/TOGE-WEBRTC-BE>
 <br>
 <br>
 
-## Ui Role
+## Ui Rule
 ![Image](https://github.com/user-attachments/assets/1247ef6f-47da-4b8f-90ba-ac63f42102d6)
 <br>
 <br>
