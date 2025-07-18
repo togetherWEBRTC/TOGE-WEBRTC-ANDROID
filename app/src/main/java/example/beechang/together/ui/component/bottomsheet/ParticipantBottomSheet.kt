@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -69,15 +70,41 @@ fun ParticipantBottomSheet(
 
                     itemsIndexed(
                         items = waitingParticipants,
-                        key = { _, participant -> participant.userId }
+                        key = { _, participant -> participant.userId + "_waiting" }
                     ) { index, participant ->
                         RoomParticipantWaitingList(
-                            index = index,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = if (index == 0) 0.dp else 8.dp),
                             participant = participant,
                             onApproveWaiting = { onApproveWaiting(participant.userId) },
                             onRejectWaiting = { onRejectWaiting(participant.userId) }
                         )
                     }
+                }
+
+                // 참여자
+                item {
+                    Text(
+                        text = stringResource(R.string.participant_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(
+                            top = if (waitingParticipants.isNotEmpty()) 16.dp else 0.dp,
+                            bottom = 8.dp
+                        )
+                    )
+                }
+
+                itemsIndexed(
+                    items = participants,
+                    key = { _, participant -> participant.userId + "_participant" }
+                ) { index, participant ->
+                    RoomParticipantList(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = if (index == 0) 0.dp else 8.dp),
+                        participant = participant
+                    )
                 }
             }
         }
@@ -86,15 +113,13 @@ fun ParticipantBottomSheet(
 
 @Composable
 fun RoomParticipantWaitingList(
-    index: Int,
+    modifier: Modifier = Modifier,
     participant: RoomParticipantUi,
     onApproveWaiting: () -> Unit = {},
     onRejectWaiting: () -> Unit = {}
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = if (index == 0) 0.dp else 8.dp),
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         CircularImage(
@@ -106,7 +131,7 @@ fun RoomParticipantWaitingList(
         Text(
             text = participant.name,
             modifier = Modifier
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 12.dp)
                 .weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
@@ -146,6 +171,46 @@ fun RoomParticipantWaitingList(
     }
 }
 
+@Composable
+fun RoomParticipantList(
+    modifier: Modifier = Modifier,
+    participant: RoomParticipantUi
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularImage(
+            imageUrl = participant.getProfileFullUrl(),
+            size = 32.dp,
+            borderWidth = 0.4.dp,
+        )
+
+        Column(
+            modifier = Modifier
+                .padding(start = 12.dp)
+                .weight(1f),
+
+            ) {
+            Text(
+                text = participant.name,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            if (participant.isOwner) {
+                Text(
+                    text = stringResource(id = R.string.label_host),
+                    modifier = Modifier.padding(top = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = LocalTogeAppColor.current.grey400
+                )
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewParticipantWaitingBottomSheet() {
@@ -160,6 +225,18 @@ fun PreviewParticipantWaitingBottomSheet() {
                 userId = "0",
                 name = "User Name",
             )
-        )
+        ),
+        participants = listOf(
+            RoomParticipantUi(
+                userId = "0",
+                name = "User Name First",
+                isOwner = true
+            ),
+            RoomParticipantUi(
+                userId = "1",
+                name = "User Name Second",
+                isOwner = false
+            )
+        ),
     )
 }
