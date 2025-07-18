@@ -90,4 +90,14 @@
     <string name="confirm_cancel_waiting">입장 대기를 취소하시겠습니까?</string>
     <string name="host_rejected_entry">통화 주최자가 입장을 거부했습니다.</string>
     <string name="confirm_end_call">통화를 종료하시겠습니까?</string>
+
+<!--    CALLING PARTICIPANTS 통화 참여자-->
+    <string name="participant_title">참여자</string>
+    <string name="waiting_participant_title">대기자</string>
+    <string name="hand_raised_participant_title">손을 든 참여자</string>
+    <string name="action_approve">승인</string>
+    <string name="action_reject">거절</string>
+    <string name="action_lower_hand">내리기</string>
+    <string name="label_me">나</string>
+    <string name="label_host">호스트</string>
 </resources>
