@@ -302,6 +302,7 @@ fun CallRoomScreen(
         modalSheetState = participantBottomSheetState,
         isShow = isShowParticipantBottomSheet,
         waitingParticipants = roomState.waitingParticipants,
+        participants = signallingState.toParticipantList(),
         onDismissRequest = { onEventUpdateParticipantBottomSheetState(false) },
         onApproveWaiting = { userId -> onEventDecideWaiting(userId, true) },
         onRejectWaiting = { userId -> onEventDecideWaiting(userId, false) }
