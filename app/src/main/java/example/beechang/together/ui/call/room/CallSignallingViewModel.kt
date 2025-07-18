@@ -122,7 +122,7 @@ class CallSignallingViewModel @Inject constructor(
             }
 
             is CallSignallingEvent.ToggleSpeakerMute -> {
-                 toggleSpeakerMute(event.isMuted)
+                toggleSpeakerMute(event.isMuted)
             }
         }
     }
@@ -462,7 +462,9 @@ data class CallSignallingState(
     val isEnabledMic: Boolean = true,
     val isSpeakerMuted: Boolean = false,
     val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf()
-) : Parcelable, UiState
+) : Parcelable, UiState {
+    fun toParticipantList() = participants.values.toList()
+}
 
 sealed interface CallSignallingEvent : UiEvent {
     data class UpdatedRoomCode(val roomCode: String) : CallSignallingEvent
