@@ -59,7 +59,12 @@ fun CallRoomRouter(
 
     /* BottomSheetState */
     val participantBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showParticipantBottomSheet by remember { mutableStateOf(false) }
+    var isShowParticipantBottomSheet by remember { mutableStateOf(false) }
+    
+    /* DialogStates */
+    var isShowDialogForWrongRoomCode by remember { mutableStateOf(false) }
+    var isShowDialogDisconnectRoom by remember { mutableStateOf(false) }
+    var isShowDialogPermission by remember { mutableStateOf(false) }
 
     val permissionHandler =
         rememberMultiPermissionHandler(
@@ -187,7 +192,7 @@ fun CallRoomRouter(
         }
     }
 
-    BackHandler { roomViewModel.onEvent(SwitchShowDisconnectRoomDialog) }
+    BackHandler { isShowDialogDisconnectRoom = true }
 
     val roomState by roomViewModel.uiState.collectAsStateWithLifecycle()
     val signallingState by signallingViewModel.uiState.collectAsStateWithLifecycle()
@@ -202,25 +207,26 @@ fun CallRoomRouter(
         isCameraOn = cameraPermissionData?.status == PermissionHandlerStatus.GRANTED && signallingState.participants[signallingState.myUserId]?.isCameraOn == true,
         isMicOn = micPermissionData?.status == PermissionHandlerStatus.GRANTED && signallingState.participants[signallingState.myUserId]?.isMicrophoneOn == true,
         isSpeakerMuted = signallingState.isSpeakerMuted,
-        isShowParticipantBottomSheet = showParticipantBottomSheet,
+        isShowParticipantBottomSheet = isShowParticipantBottomSheet,
+        isShowDialogForWrongRoomCode = isShowDialogForWrongRoomCode,
+        isShowDialogDisconnectRoom = isShowDialogDisconnectRoom,
+        isShowDialogPermission = isShowDialogPermission,
         /* EVENT */
         onEventDisconnect = {
             roomViewModel.onEvent(WebSocketDisconnect)
             signallingViewModel.onEvent(Disconnect)
         },
-        onEventSwitchShowDisconnectRoomDialog = {
-            roomViewModel.onEvent(SwitchShowDisconnectRoomDialog)
-        },
-        onEventSwitchShowPermissionToSettingDialog = {
-            roomViewModel.onEvent(SwitchShowDialogPermission)
-        },
+        onEventDismissDisconnectDialog = { isShowDialogDisconnectRoom = false },
+        onEventShowDisconnectDialog = { isShowDialogDisconnectRoom = true },
+        onEventDismissPermissionDialog = { isShowDialogPermission = false },
+        onEventDismissWrongRoomCodeDialog = { isShowDialogForWrongRoomCode = false },
         onEventSwitchCamera = { signallingViewModel.onEvent(SwitchCamera) },
         onEventToggleOnOffCamera = handleToggleCamera,
         onEventToggleOnOffMic = handleToggleMic,
         onEventToggleSpeakerMute = { isMuted ->
             signallingViewModel.onEvent(ToggleSpeakerMute(isMuted))
         },
-        onEventUpdateParticipantBottomSheetState = { bool -> showParticipantBottomSheet = bool },
+        onEventUpdateParticipantBottomSheetState = { bool -> isShowParticipantBottomSheet = bool },
         onEventDecideWaiting = { userId, isApprove ->
             roomViewModel.onEvent(
                 CallRoomEvent.DecideWaitingApproval(userId = userId, isApprove = isApprove)
@@ -243,10 +249,15 @@ fun CallRoomScreen(
     isMicOn: Boolean = true,
     isSpeakerMuted: Boolean = false,
     isShowParticipantBottomSheet: Boolean = false,
+    isShowDialogForWrongRoomCode: Boolean = false,
+    isShowDialogDisconnectRoom: Boolean = false,
+    isShowDialogPermission: Boolean = false,
     /* EVENT */
     onEventDisconnect: () -> Unit = {},
-    onEventSwitchShowDisconnectRoomDialog: () -> Unit = {},
-    onEventSwitchShowPermissionToSettingDialog: () -> Unit = {},
+    onEventDismissDisconnectDialog: () -> Unit = {},
+    onEventShowDisconnectDialog: () -> Unit = {},
+    onEventDismissPermissionDialog: () -> Unit = {},
+    onEventDismissWrongRoomCodeDialog: () -> Unit = {},
     onEventSwitchCamera: () -> Unit = { },
     onEventToggleOnOffCamera: (Boolean) -> Unit = { },
     onEventToggleOnOffMic: (Boolean) -> Unit = { },
@@ -263,37 +274,38 @@ fun CallRoomScreen(
 
     /* DIALOG */
     TogeOnlyConfirmBtnDialog(
-        isShowDialog = roomState.isShowDialogForWrongRoomCode,
+        isShowDialog = isShowDialogForWrongRoomCode,
         title = stringResource(R.string.error),
         content = stringResource(R.string.connection_failed),
         onConfirm = {
             onEventDisconnect()
+            onEventDismissWrongRoomCodeDialog()
         }
     )
 
     TogeDialog(
-        isShowDialog = roomState.isShowDialogDisconnectRoom,
+        isShowDialog = isShowDialogDisconnectRoom,
         title = stringResource(R.string.ok),
         content = stringResource(R.string.confirm_end_call),
         onConfirm = {
             onEventDisconnect()
-            onEventSwitchShowDisconnectRoomDialog()
+            onEventDismissDisconnectDialog()
         },
         onDismiss = {
-            onEventSwitchShowDisconnectRoomDialog()
-        },
+            onEventDismissDisconnectDialog()
+        }
     )
 
     TogeDialog(
-        isShowDialog = roomState.isShowDialogPermission,
+        isShowDialog = isShowDialogPermission,
         title = stringResource(R.string.error),
         content = stringResource(R.string.permission_settings_required),
         onConfirm = {
-            onEventSwitchShowPermissionToSettingDialog()
+            onEventDismissPermissionDialog()
         },
         onDismiss = {
-            onEventSwitchShowPermissionToSettingDialog()
-        },
+            onEventDismissPermissionDialog()
+        }
     )
 
     /* Bottom Sheet */
@@ -317,7 +329,7 @@ fun CallRoomScreen(
         topBar = {
             CallingTopBar(
                 isVolumeOn = !isSpeakerMuted,
-                onClickCallEnd = { onEventSwitchShowDisconnectRoomDialog() },
+                onClickCallEnd = { onEventShowDisconnectDialog() },
                 onClickToggleSpeaker = { onEventToggleSpeakerMute(!isSpeakerMuted) },
                 onClickSwitchCamera = { onEventSwitchCamera() },
             )
@@ -362,7 +374,10 @@ fun PreviewCallRoomScreen() {
         signallingState = CallSignallingState(),
         wrtcState = WebRtcState(),
         onEventDisconnect = {},
-        onEventSwitchShowDisconnectRoomDialog = {},
+        onEventDismissDisconnectDialog = {},
+        onEventShowDisconnectDialog = {},
+        onEventDismissPermissionDialog = {},
+        onEventDismissWrongRoomCodeDialog = {},
         onEventSwitchCamera = {}
     )
 }

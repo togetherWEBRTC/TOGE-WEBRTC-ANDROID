@@ -56,18 +56,6 @@ class CallRoomViewModel @Inject constructor(
                 )
             }
 
-            CallRoomEvent.SwitchShowDialogForWrongRoomCode -> {
-                updateState { copy(isShowDialogForWrongRoomCode = !currentState.isShowDialogForWrongRoomCode) }
-            }
-
-            CallRoomEvent.SwitchShowDisconnectRoomDialog -> {
-                updateState { copy(isShowDialogDisconnectRoom = !currentState.isShowDialogDisconnectRoom) }
-            }
-
-            CallRoomEvent.SwitchShowDialogPermission -> {
-                updateState { copy(isShowDialogPermission = !currentState.isShowDialogPermission) }
-            }
-
         }
     }
 
@@ -131,10 +119,7 @@ data class CallRoomState(
     val isLoading: Boolean = false,
     val roomCode: String = "",
     val isHost: Boolean = false,
-    val waitingParticipants: List<RoomParticipantUi> = emptyList(),
-    val isShowDialogForWrongRoomCode: Boolean = false,
-    val isShowDialogDisconnectRoom: Boolean = false,
-    val isShowDialogPermission: Boolean = false
+    val waitingParticipants: List<RoomParticipantUi> = emptyList()
 ) : Parcelable, UiState
 
 sealed interface CallRoomEvent : UiEvent {
@@ -144,10 +129,6 @@ sealed interface CallRoomEvent : UiEvent {
         val userId: String,
         val isApprove: Boolean
     ) : CallRoomEvent // 웨이팅 승인 및 거절 요청
-
-    object SwitchShowDialogForWrongRoomCode : CallRoomEvent
-    object SwitchShowDisconnectRoomDialog : CallRoomEvent
-    object SwitchShowDialogPermission : CallRoomEvent
 }
 
 sealed interface CallRoomEffect : UiEffect {
