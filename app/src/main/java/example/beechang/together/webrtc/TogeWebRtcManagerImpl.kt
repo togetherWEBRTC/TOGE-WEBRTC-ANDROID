@@ -13,7 +13,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -30,7 +29,7 @@ import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
-class DefaultTogeWebRtcManager @Inject constructor(
+class TogeWebRtcManagerImpl @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : TogeWebRtcManager {
 
@@ -193,7 +192,7 @@ class DefaultTogeWebRtcManager @Inject constructor(
         remoteUserId: String,
         role: PeerConnectionRole
     ) {
-        val togePC = TogePeerConnection(
+        TogePeerConnection(
             pcf = pcf.pcf,
             localUserId = localUserId,
             remoteUserId = remoteUserId,

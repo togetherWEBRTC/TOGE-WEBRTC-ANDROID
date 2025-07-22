@@ -30,7 +30,6 @@ import example.beechang.together.webrtc.TogeWebRtcManager
 import example.beechang.together.webrtc.WebRtcAction
 import example.beechang.together.webrtc.WebRtcAction.General.*
 import example.beechang.together.webrtc.WebRtcData
-import example.beechang.together.webrtc.di.TogeWebRtcManagerFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -42,7 +41,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CallSignallingViewModel @Inject constructor(
-    private val webRtcManagerFactory: TogeWebRtcManagerFactory,
+    private val webRtcManager: TogeWebRtcManager,
     private val getRoomParticipantUseCase: GetRoomParticipantUseCase,
     private val getUserInfoUseCase: GetUserInfoUseCase,
     private val receiveUpdatingRoomParticipantUseCase: ReceiveUpdatingRoomParticipantUseCase,
@@ -63,7 +62,6 @@ class CallSignallingViewModel @Inject constructor(
     savedStateHandle, CallSignallingState(), CALL_SIGNALLING_STATE
 ) {
 
-    lateinit var webRtcManager: TogeWebRtcManager
 
     private val _webRtcState = MutableStateFlow(WebRtcState())
     val webRtcState: StateFlow<WebRtcState> = _webRtcState
@@ -152,7 +150,7 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun startWebRtc(userId: String = "") = viewModelScope.launch {
-        webRtcManager = webRtcManagerFactory.create().apply {
+        webRtcManager.apply {
             processActionAsync(InitWebRtc(if (userId.isNotEmpty()) userId else currentState.myUserId))
 
             if (currentState.isSpeakerMuted) {
@@ -189,11 +187,9 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun toggleVideoEnabled(enabled: Boolean) = viewModelScope.launch {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processActionAsync(
-                ToggleVideo(userId = currentState.myUserId, enabled = enabled)
-            )
-        }
+        webRtcManager.processActionAsync(
+            ToggleVideo(userId = currentState.myUserId, enabled = enabled)
+        )
         changeCameraSuatusUseCase.invoke(roomCode = currentState.roomCode, isCameraOn = enabled)
         updateState {
             copy(
@@ -206,11 +202,9 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun toggleAudioEnabled(enabled: Boolean) = viewModelScope.launch {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processActionAsync(
-                ToggleAudio(userId = currentState.myUserId, enabled = enabled)
-            )
-        }
+        webRtcManager.processActionAsync(
+            ToggleAudio(userId = currentState.myUserId, enabled = enabled)
+        )
         changeMicStatusUseCase.invoke(roomCode = currentState.roomCode, isMicOn = enabled)
         updateState {
             copy(
@@ -223,23 +217,17 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun refreshVideoData() {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processActionAsync(RefreshVideo(currentState.myUserId))
-        }
+        webRtcManager.processActionAsync(RefreshVideo(currentState.myUserId))
     }
 
     private fun refreshAudioData() {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processActionAsync(RefreshAudio(currentState.myUserId))
-        }
+        webRtcManager.processActionAsync(RefreshAudio(currentState.myUserId))
     }
 
     private fun toggleSpeakerMute(isMuted: Boolean) = viewModelScope.launch {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processActionAsync(
-                SetSpeakerMute(userId = currentState.myUserId, isMuted = isMuted)
-            )
-        }
+        webRtcManager.processActionAsync(
+            SetSpeakerMute(userId = currentState.myUserId, isMuted = isMuted)
+        )
 
         updateState { copy(isSpeakerMuted = isMuted) }
     }
