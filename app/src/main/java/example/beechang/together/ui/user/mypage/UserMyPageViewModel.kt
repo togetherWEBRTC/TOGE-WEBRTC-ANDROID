@@ -29,17 +29,8 @@ class UserMyPageViewModel @Inject constructor(
 ) {
     public override fun onEvent(event: UserMyPageEvent) {
         when (event) {
-            UserMyPageEvent.OnDoubleCheckModifyProfileImage -> {
-                updateState { copy(isShowDoubleCheckModifyProfileImage = true) }
-            }
-
             UserMyPageEvent.OnModifyProfileImage -> {
-                updateState { copy(isShowDoubleCheckModifyProfileImage = false) }
                 getNewProfileImage()
-            }
-
-            UserMyPageEvent.OnCancelModifyProfileImage -> {
-                updateState { copy(isShowDoubleCheckModifyProfileImage = false) }
             }
 
             UserMyPageEvent.OnLogout -> {
@@ -110,14 +101,11 @@ data class UserMyPageState(
     val userId: String = "",
     val nickname: String = "",
     val profileImageUrl: String = "",
-    val isShowDoubleCheckModifyProfileImage: Boolean = false,
     val isLoading: Boolean = false
 ) : Parcelable, UiState
 
 sealed class UserMyPageEvent : UiEvent {
-    object OnDoubleCheckModifyProfileImage : UserMyPageEvent()
     object OnModifyProfileImage : UserMyPageEvent()
-    object OnCancelModifyProfileImage : UserMyPageEvent()
     object OnLogout : UserMyPageEvent()
 }
 

@@ -23,8 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +68,9 @@ fun UserMyPageRouter(
     val userPageViewModel: UserMyPageViewModel = hiltViewModel()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+
+    /* Dialog States */
+    var isShowDoubleCheckModifyProfileDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.sideEffect.collect {
@@ -113,21 +118,18 @@ fun UserMyPageRouter(
 
     UserMyPageScreen(
         modifier = modifier,
-        state = state,
         snackbarHostState = snackbarHostState,
+        /* STATE */
+        state = state,
+        isShowDoubleCheckModifyProfileDialog = isShowDoubleCheckModifyProfileDialog,
         /* EVENT */
-        onEventDoubleCheckModifyProfileImage = {
-            userPageViewModel.onEvent(UserMyPageEvent.OnDoubleCheckModifyProfileImage)
-        },
+        onEventShowModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = true },
         onEventModifyProfileImage = {
+            isShowDoubleCheckModifyProfileDialog = false
             userPageViewModel.onEvent(UserMyPageEvent.OnModifyProfileImage)
         },
-        onEventCancelModifyProfileImage = {
-            userPageViewModel.onEvent(UserMyPageEvent.OnCancelModifyProfileImage)
-        },
-        onEventLogout = {
-            userPageViewModel.onEvent(UserMyPageEvent.OnLogout)
-        },
+        onEventDismissModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = false },
+        onEventLogout = { userPageViewModel.onEvent(UserMyPageEvent.OnLogout) },
         onClickIsPreparing = {
             coroutineScope.launch {
                 snackbarHostState.showSnackbar(
@@ -147,10 +149,11 @@ fun UserMyPageScreen(
     /* STATE */
     state: UserMyPageState = UserMyPageState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    isShowDoubleCheckModifyProfileDialog: Boolean = false,
     /* EVENT */
-    onEventDoubleCheckModifyProfileImage: () -> Unit = {},
+    onEventShowModifyProfileDialog: () -> Unit = {},
     onEventModifyProfileImage: () -> Unit = {},
-    onEventCancelModifyProfileImage: () -> Unit = {},
+    onEventDismissModifyProfileDialog: () -> Unit = {},
     onEventLogout: () -> Unit = {},
     onClickIsPreparing: () -> Unit = {},
     /* NAVIGATION */
@@ -160,13 +163,13 @@ fun UserMyPageScreen(
     val scrollState = rememberScrollState()
 
     TogeDialog(
-        isShowDialog = state.isShowDoubleCheckModifyProfileImage,
+        isShowDialog = isShowDoubleCheckModifyProfileDialog,
         title = stringResource(R.string.my_profile_edit),
         content = stringResource(R.string.my_profile_edit_prompt),
         dismissOnBackPress = true,
         dismissOnClickOutside = true,
         onConfirm = { onEventModifyProfileImage() },
-        onDismiss = { onEventCancelModifyProfileImage() },
+        onDismiss = { onEventDismissModifyProfileDialog() }
     )
 
     TogeScaffold(
@@ -205,7 +208,7 @@ fun UserMyPageScreen(
                         end.linkTo(parent.end)
                         bottom.linkTo(parent.bottom)
                     },
-                    onClick = { onEventDoubleCheckModifyProfileImage() }
+                    onClick = { onEventShowModifyProfileDialog() }
                 ) {
                     Box(
                         modifier = Modifier
@@ -289,8 +292,7 @@ fun PreviewUserMyPageScreen() {
             isLoading = false,
             profileImageUrl = "https://example.com/profile.jpg",
             nickname = "TOGE_NAME",
-            userId = "TogeUserId",
-            isShowDoubleCheckModifyProfileImage = false
+            userId = "TogeUserId"
         )
     )
 }
