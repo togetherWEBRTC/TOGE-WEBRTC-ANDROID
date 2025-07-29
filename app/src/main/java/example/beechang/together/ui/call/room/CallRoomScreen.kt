@@ -40,6 +40,7 @@ import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
 import example.beechang.together.ui.component.scaffold.AnimatedTogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
 import example.beechang.together.ui.component.topbar.CallingTopBar
+import example.beechang.together.ui.utils.LocalWebRtcServiceManager
 import example.beechang.together.ui.utils.PermissionHandlerStatus
 import example.beechang.together.ui.utils.rememberMultiPermissionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -56,11 +57,12 @@ fun CallRoomRouter(
     val signallingViewModel: CallSignallingViewModel = hiltViewModel()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val webRtcServiceManager = LocalWebRtcServiceManager.current
 
     /* BottomSheetState */
     val participantBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isShowParticipantBottomSheet by remember { mutableStateOf(false) }
-    
+
     /* DialogStates */
     var isShowDialogForWrongRoomCode by remember { mutableStateOf(false) }
     var isShowDialogDisconnectRoom by remember { mutableStateOf(false) }
@@ -101,17 +103,36 @@ fun CallRoomRouter(
         }
     }
 
+    // 쿼리파라미터로 넘어온 액션 처리 - stop 통화중지
+    LaunchedEffect(navBackStackEntry.savedStateHandle) {
+        navBackStackEntry.savedStateHandle.getStateFlow<String?>("action", null).collect { action ->
+            if (action == "stop") {
+                isShowDialogDisconnectRoom = true
+                navBackStackEntry.savedStateHandle["action"] = null
+            }
+        }
+    }
+
+    // 퍼미션 변경 시
     val permissionInitialized = remember { mutableStateOf(false) }
     LaunchedEffect(cameraPermissionData?.status, micPermissionData?.status) {
         if (permissionInitialized.value) {
+            var needServiceRestart = false
+
             if (cameraPermissionData?.status == PermissionHandlerStatus.GRANTED) {
                 signallingViewModel.onEvent(ToggleVideoEnabled(true))
                 signallingViewModel.onEvent(RefreshVideo)
+                needServiceRestart = true
             }
 
             if (micPermissionData?.status == PermissionHandlerStatus.GRANTED) {
                 signallingViewModel.onEvent(ToggleAudioEnabled(true))
                 signallingViewModel.onEvent(RefreshAudio)
+                needServiceRestart = true
+            }
+
+            if (needServiceRestart) {
+                webRtcServiceManager.restartCall()
             }
         } else {
             permissionInitialized.value = true
@@ -213,6 +234,7 @@ fun CallRoomRouter(
         isShowDialogPermission = isShowDialogPermission,
         /* EVENT */
         onEventDisconnect = {
+            webRtcServiceManager.release()
             roomViewModel.onEvent(WebSocketDisconnect)
             signallingViewModel.onEvent(Disconnect)
         },

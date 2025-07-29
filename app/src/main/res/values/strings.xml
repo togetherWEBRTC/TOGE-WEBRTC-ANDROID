@@ -76,6 +76,7 @@
     <string name="permission_description_title">원활한 통화를 위해 아래의 권한이 필요합니다.</string>
     <string name="permission_description_camera">카메라 : 영상을 송출하기 위해 필요합니다.</string>
     <string name="permission_description_microphone">마이크 : 음성을 전달하기 위해 필요합니다.</string>
+    <string name="permission_description_notification">알림 : 백그라운드 통화를 위해 필요합니다.</string>
     <string name="action_request_all_permissions">모든 권한 요청</string>
     <string name="permissions_granted">권한 허용됨</string>
     <string name="all_permissions_granted">모든 권한이 허용되었습니다.</string>
@@ -90,6 +91,10 @@
     <string name="confirm_cancel_waiting">입장 대기를 취소하시겠습니까?</string>
     <string name="host_rejected_entry">통화 주최자가 입장을 거부했습니다.</string>
     <string name="confirm_end_call">통화를 종료하시겠습니까?</string>
+    <string name="video_call">화상 통화</string>
+    <string name="end_call">통화 종료</string>
+    <string name="together_call">Together 통화</string>
+    <string name="tap_to_return_to_call_screen">탭하여 통화 화면으로 돌아가기</string>
 
 <!--    CALLING PARTICIPANTS 통화 참여자-->
     <string name="participant_title">참여자</string>
