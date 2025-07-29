@@ -45,7 +45,7 @@ class WebRtcService : Service() {
             stopActionIntent = stopActionIntent
         )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIFICATION_ID, notification, calculateForegroundServiceType())
         } else {
             startForeground(NOTIFICATION_ID, notification)
@@ -57,8 +57,11 @@ class WebRtcService : Service() {
         stopSelf()
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     private fun calculateForegroundServiceType(): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return 0
+        }
+
         var type = 0
 
         if (hasPermission(Manifest.permission.CAMERA)) {
@@ -131,7 +134,7 @@ class WebRtcService : Service() {
         }
     }
 
-    companion object Companion {
+    companion object {
         private const val NOTIFICATION_ID = 11
         private const val PENDING_INTENT_NOTIFICATION_CONTENT_REQUEST_CODE = 10
         private const val PENDING_INTENT_NOTIFICATION_STOP_REQUEST_CODE = 12
