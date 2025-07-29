@@ -76,6 +76,7 @@
     <string name="permission_description_title">원활한 통화를 위해 아래의 권한이 필요합니다.</string>
     <string name="permission_description_camera">카메라 : 영상을 송출하기 위해 필요합니다.</string>
     <string name="permission_description_microphone">마이크 : 음성을 전달하기 위해 필요합니다.</string>
+    <string name="permission_description_notification">알림 : 백그라운드 통화를 위해 필요합니다.</string>
     <string name="action_request_all_permissions">모든 권한 요청</string>
     <string name="permissions_granted">권한 허용됨</string>
     <string name="all_permissions_granted">모든 권한이 허용되었습니다.</string>
