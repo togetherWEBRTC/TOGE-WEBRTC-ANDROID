@@ -234,7 +234,7 @@ fun CallRoomRouter(
         isShowDialogPermission = isShowDialogPermission,
         /* EVENT */
         onEventDisconnect = {
-            webRtcServiceManager.unbindService()
+            webRtcServiceManager.release()
             roomViewModel.onEvent(WebSocketDisconnect)
             signallingViewModel.onEvent(Disconnect)
         },

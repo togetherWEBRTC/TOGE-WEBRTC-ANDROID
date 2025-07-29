@@ -14,11 +14,12 @@ import example.beechang.together.webrtc.service.WebRtcService
 interface ServiceManager<T : Service> {
     val service: T?
     fun bindService(onServiceConnected: () -> Unit = {})
+    fun stopService()
     fun unbindService()
 }
 
-val LocalWebRtcServiceManager = compositionLocalOf<WebRtcServiceManager> { 
-    error("WebRtcServiceManager not provided") 
+val LocalWebRtcServiceManager = compositionLocalOf<WebRtcServiceManager> {
+    error("WebRtcServiceManager not provided")
 }
 
 class WebRtcServiceManager(
@@ -68,14 +69,22 @@ class WebRtcServiceManager(
         }
     }
 
-    override fun unbindService() {
+    override fun stopService() {
         _service?.stopCall()
+    }
+
+    override fun unbindService() {
         if (::serviceConnection.isInitialized) {
             try {
                 context.unbindService(serviceConnection)
             } catch (e: IllegalArgumentException) {
             }
         }
+    }
+
+    fun release() {
+        stopService()
+        unbindService()
         _service = null
     }
 

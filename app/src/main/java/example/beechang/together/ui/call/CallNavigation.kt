@@ -84,7 +84,7 @@ fun NavGraphBuilder.callNavGraph(
         DisposableEffect(navBackStackEntry) {
             webRtcServiceManager.bindService()
             onDispose {
-                webRtcServiceManager.unbindService()
+                webRtcServiceManager.release()
             }
         }
 
