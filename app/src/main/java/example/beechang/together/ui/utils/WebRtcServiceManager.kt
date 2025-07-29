@@ -17,7 +17,9 @@ interface ServiceManager<T : Service> {
     fun unbindService()
 }
 
-val LocalWebRtcServiceManager = compositionLocalOf<WebRtcServiceManager?> { null }
+val LocalWebRtcServiceManager = compositionLocalOf<WebRtcServiceManager> { 
+    error("WebRtcServiceManager not provided") 
+}
 
 class WebRtcServiceManager(
     private val activityClass: Class<out Activity>,

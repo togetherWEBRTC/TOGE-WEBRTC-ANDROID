@@ -132,7 +132,7 @@ fun CallRoomRouter(
             }
 
             if (needServiceRestart) {
-                webRtcServiceManager?.restartCall()
+                webRtcServiceManager.restartCall()
             }
         } else {
             permissionInitialized.value = true
@@ -234,7 +234,7 @@ fun CallRoomRouter(
         isShowDialogPermission = isShowDialogPermission,
         /* EVENT */
         onEventDisconnect = {
-            webRtcServiceManager?.unbindService()
+            webRtcServiceManager.unbindService()
             roomViewModel.onEvent(WebSocketDisconnect)
             signallingViewModel.onEvent(Disconnect)
         },
