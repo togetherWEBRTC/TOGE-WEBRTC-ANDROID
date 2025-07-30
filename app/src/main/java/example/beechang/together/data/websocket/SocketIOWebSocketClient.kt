@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
@@ -42,7 +43,11 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
 
     private var currentToken: String? = null
 
-    private val _eventFlow = MutableSharedFlow<WebSocketEventResponse>()
+    private val _eventFlow = MutableSharedFlow<WebSocketEventResponse>(
+        replay = 0,
+        extraBufferCapacity = 32,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     override val eventFlow: SharedFlow<WebSocketEventResponse> = _eventFlow
 
     private val job = SupervisorJob()
