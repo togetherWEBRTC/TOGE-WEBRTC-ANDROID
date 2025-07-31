@@ -216,12 +216,9 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
 
     private suspend fun getResultEventDisconnect(): Boolean {
         val deferred = CompletableDeferred<Boolean>()
-        var listenerRef: Emitter.Listener? = null
         val listener = Emitter.Listener {
             deferred.complete(true)
-            socket?.off(Socket.EVENT_DISCONNECT, listenerRef)
         }
-        listenerRef = listener
         socket?.on(Socket.EVENT_DISCONNECT, listener)
         return deferred.await()
     }
