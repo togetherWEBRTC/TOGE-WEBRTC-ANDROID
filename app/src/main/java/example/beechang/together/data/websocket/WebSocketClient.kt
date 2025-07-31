@@ -3,7 +3,7 @@ package example.beechang.together.data.websocket
 import example.beechang.together.data.response.WebSocketEventResponse
 import example.beechang.together.domain.data.TogeResult
 import kotlinx.coroutines.flow.SharedFlow
-import kotlin.reflect.KClass
+import kotlinx.serialization.KSerializer
 
 interface WebSocketClient {
     var isConnected: Boolean
@@ -12,13 +12,13 @@ interface WebSocketClient {
     suspend fun disconnect(): Boolean
     suspend fun <RESP : Any> emitWithAck(
         event: String,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP>
 
     suspend fun <REQ : Any, RESP : Any> emitWithAck(
         event: String,
         request: REQ,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP>
 }
 
