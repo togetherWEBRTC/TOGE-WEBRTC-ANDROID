@@ -11,11 +11,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
+import kotlinx.serialization.KSerializer
 import retrofit2.Response
-import kotlin.reflect.KClass
 
 fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
     return when (code) {
@@ -186,18 +184,17 @@ val json = Json {
     encodeDefaults = true
 }
 
-@OptIn(InternalSerializationApi::class)
 fun <T : Any> socketEventToResultFlow(
     webSocketClient: WebSocketClient,
     eventName: String,
-    resType: KClass<T>
+    resType: KSerializer<T>
 ): Flow<TogeResult<T>> {
     return webSocketClient.eventFlow
         .filter { it.event == eventName }
         .map { response ->
             try {
                 response.jsonData?.let { jsonData ->
-                    val parsedResponse = json.decodeFromString(resType.serializer(), jsonData)
+                    val parsedResponse = json.decodeFromString(resType, jsonData)
                     TogeResult.Success(parsedResponse)
                 } ?: TogeResult.Error(
                     togeError = TogeError.DataError(msg = "Response body is null"),
