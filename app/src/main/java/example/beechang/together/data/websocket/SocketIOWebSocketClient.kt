@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.json.JSONObject
@@ -31,7 +32,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resumeWithException
-import kotlin.reflect.KClass
 
 
 @Singleton
@@ -140,7 +140,7 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
 
     override suspend fun <RESP : Any> emitWithAck(
         event: String,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP> {
         return emitWithAck(event, Unit, responseType)
     }
@@ -148,7 +148,7 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
     override suspend fun <REQ : Any, RESP : Any> emitWithAck(
         event: String,
         request: REQ,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP> {
         if (!isConnected || socket == null) {
             val msg = "Need to connect socket first"
@@ -199,10 +199,9 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         throw SocketTimeoutException("Socket timeout after ${timeoutMs}ms")
     }
 
-    @OptIn(InternalSerializationApi::class)
     private fun <RESP : Any> parseAckResponse(
         args: Array<Any?>,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): RESP {
         val raw = args.firstOrNull()
         val jsonObj = when (raw) {
@@ -210,7 +209,7 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             is String -> JSONObject(raw)
             else -> throw IllegalArgumentException("Invalid response format: ${args.contentToString()}")
         }
-        return json.decodeFromString(responseType.serializer(), jsonObj.toString())
+        return json.decodeFromString(responseType, jsonObj.toString())
     }
 
 

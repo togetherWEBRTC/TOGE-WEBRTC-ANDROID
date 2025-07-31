@@ -46,7 +46,7 @@ class RoomDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.ROOM_CREATE,
                 request = RoomCodeRequest(roomCode = roomCode),
-                responseType = RoomCreateResponse::class
+                responseType = RoomCreateResponse.serializer()
             )
         }
 
@@ -55,7 +55,7 @@ class RoomDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.ROOM_REQUEST_JOIN,
                 request = RoomCodeRequest(roomCode = roomCode),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -71,7 +71,7 @@ class RoomDataSourceImpl @Inject constructor(
                 userId = targetUserId,
                 isApprove = isApprove
             ),
-            responseType = BaseResponse::class
+            responseType = BaseResponse.serializer()
         )
     }
 
@@ -85,7 +85,7 @@ class RoomDataSourceImpl @Inject constructor(
                 roomCode = roomCode,
                 includingMyself = isIncludingMySelf
             ),
-            responseType = RoomMemberResponse::class
+            responseType = RoomMemberResponse.serializer()
         )
     }
 
@@ -99,7 +99,7 @@ class RoomDataSourceImpl @Inject constructor(
                 roomCode = roomCode,
                 isMicrophoneOn = isMicrophoneOn
             ),
-            responseType = BaseResponse::class
+            responseType = BaseResponse.serializer()
         )
     }
 
@@ -113,7 +113,7 @@ class RoomDataSourceImpl @Inject constructor(
                 roomCode = roomCode,
                 isCameraOn = isCameraOn
             ),
-            responseType = BaseResponse::class
+            responseType = BaseResponse.serializer()
         )
     }
 

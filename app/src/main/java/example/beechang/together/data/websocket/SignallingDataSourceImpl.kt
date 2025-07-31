@@ -23,7 +23,7 @@ class SignallingDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.RTC_READY,
                 request = RoomCodeRequest(roomCode = roomCode),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -36,7 +36,7 @@ class SignallingDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.SIGNAL_SEND_OFFER,
                 request = RoomSendSdpRequest(roomCode = roomCode, toUserId = toUserId, sdp = sdp),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -49,7 +49,7 @@ class SignallingDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.SIGNAL_SEND_ANSWER,
                 request = RoomSendSdpRequest(roomCode = roomCode, toUserId = toUserId, sdp = sdp),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -70,7 +70,7 @@ class SignallingDataSourceImpl @Inject constructor(
                     sdpMid = sdpMid,
                     sdpMLineIndex = sdpMLineIndex
                 ),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
