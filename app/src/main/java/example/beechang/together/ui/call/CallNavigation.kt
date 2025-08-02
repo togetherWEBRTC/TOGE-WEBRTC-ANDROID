@@ -2,7 +2,6 @@ package example.beechang.together.ui.call
 
 import android.app.Activity
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
@@ -12,7 +11,7 @@ import androidx.navigation.navArgument
 import example.beechang.together.ui.call.room.CallRoomRouter
 import example.beechang.together.ui.call.waiting.CallWaitingRouter
 import example.beechang.together.ui.utils.LocalWebRtcServiceManager
-import example.beechang.together.ui.utils.WebRtcServiceManager
+import example.beechang.together.ui.utils.rememberWebRtcServiceManager
 import kotlinx.coroutines.CoroutineScope
 
 object CallNavDestination {
@@ -76,20 +75,11 @@ fun NavGraphBuilder.callNavGraph(
     ) { navBackStackEntry ->
         val context = LocalContext.current
 
-        val webRtcServiceManager = WebRtcServiceManager(
-            activityClass = activityClass,
-            context = context
-        )
-
-        DisposableEffect(navBackStackEntry) {
-            webRtcServiceManager.bindService()
-            onDispose {
-                webRtcServiceManager.release()
-            }
-        }
-
         CompositionLocalProvider(
-            LocalWebRtcServiceManager provides webRtcServiceManager
+            LocalWebRtcServiceManager provides rememberWebRtcServiceManager(
+                activityClass = activityClass,
+                context = context
+            )
         ) {
             CallRoomRouter(
                 navBackStackEntry = navBackStackEntry,
