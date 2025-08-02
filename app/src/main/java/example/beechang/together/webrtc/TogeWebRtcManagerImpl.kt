@@ -39,7 +39,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
 
     private val pcf: TogePeerConnectionFactory = TogePeerConnectionFactory(context, eglBase)
 
-    private val videoHandler by lazy { TogeVideoHandler(context = context, eglBase = eglBase) }
+    private var videoHandler: TogeVideoHandler? = null
 
     private val videoResolutionManager: VideoResolutionManager = VideoResolutionManager()
 
@@ -94,10 +94,10 @@ class TogeWebRtcManagerImpl @Inject constructor(
             }
 
             is WebRtcAction.General.SwitchCamera -> {
-                videoHandler.switchCamera()
+                videoHandler?.switchCamera()
                 updateParticipant(action.userId) { participant ->
                     participant.copy(
-                        isFrontLocalCamera = videoHandler.getIsUsingFrontCamera()
+                        isFrontLocalCamera = videoHandler?.getIsUsingFrontCamera() ?: false
                     )
                 }
             }
@@ -163,7 +163,9 @@ class TogeWebRtcManagerImpl @Inject constructor(
 
     override fun release() {
         try {
-            videoHandler.release()
+            videoHandler?.release()
+            videoHandler = null
+
             localVideoTrack?.dispose()
             localVideoTrack = null
 
@@ -180,8 +182,6 @@ class TogeWebRtcManagerImpl @Inject constructor(
             pendingIceCandidates.clear()
 
             _participantMapFlow.value = emptyMap()
-
-            coroutineScope.cancel()
         } catch (e: Exception) {
             Log.e("TogeWebRtcManager", "Error releasing resources: ${e.message}")
         }
@@ -242,6 +242,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
     }
 
     private fun initWebRtc(userId: String) {
+        videoHandler = TogeVideoHandler(context = context, eglBase = eglBase)
         val videoSource = createVideoSource()
         localVideoTrack = createVideoTrack(userId, videoSource)
 
@@ -252,7 +253,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
             participant.copy(
                 videoTrack = localVideoTrack,
                 audioTrack = localAudioTrack,
-                isFrontLocalCamera = videoHandler.getIsUsingFrontCamera()
+                isFrontLocalCamera = videoHandler?.getIsUsingFrontCamera() ?: false
             )
         }
 
@@ -260,8 +261,8 @@ class TogeWebRtcManagerImpl @Inject constructor(
     }
 
     private fun createVideoSource(): VideoSource = pcf.createVideoSource().apply {
-        videoHandler.initializeVideoCapturer(capturerObserver = this.capturerObserver)
-        videoHandler.startVideoCapture()
+        videoHandler?.initializeVideoCapturer(capturerObserver = this.capturerObserver)
+        videoHandler?.startVideoCapture()
     }
 
     private fun createVideoTrack(
