@@ -7,7 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import example.beechang.together.webrtc.intent.TogeWebRtcIntent
 import example.beechang.together.webrtc.service.WebRtcService
 
@@ -20,6 +23,28 @@ interface ServiceManager<T : Service> {
 
 val LocalWebRtcServiceManager = compositionLocalOf<WebRtcServiceManager> {
     error("WebRtcServiceManager not provided")
+}
+
+@Composable
+fun rememberWebRtcServiceManager(
+    activityClass: Class<out Activity>,
+    context: Context
+): WebRtcServiceManager {
+    val webRtcServiceManager = remember(activityClass) {
+        WebRtcServiceManager(
+            activityClass = activityClass,
+            context = context
+        )
+    }
+
+    DisposableEffect(webRtcServiceManager) {
+        webRtcServiceManager.bindService()
+        onDispose {
+            webRtcServiceManager.release()
+        }
+    }
+
+    return webRtcServiceManager
 }
 
 class WebRtcServiceManager(
