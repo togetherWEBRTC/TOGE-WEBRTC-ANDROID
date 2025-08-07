@@ -6,6 +6,13 @@ app-target-sdk = "35"
 app-version-code = "1"
 app-version-name = "1.0"
 
+# WebRTC Lib Local Path
+webrtcJarPath = "libs/libwebrtc.jar"
+
+# Exclude Config
+exclude-org-json-group = "org.json"
+exclude-org-json-module = "json"
+
 agp = "8.9.0"
 kotlin = "2.1.10"
 coreKtx = "1.10.1"
