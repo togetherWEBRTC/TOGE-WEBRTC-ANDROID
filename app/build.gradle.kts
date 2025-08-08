@@ -150,12 +150,12 @@ dependencies {
     implementation(libs.datastore)
 
     //  Socketio
-    implementation("io.socket:socket.io-client:2.0.0") {
-        exclude(group = "org.json", module = "json")
+    implementation(libs.socketio) {
+        exclude(group = libs.versions.exclude.org.json.group.get(), module = libs.versions.exclude.org.json.module.get())
     }
 
     //  WebRTC
-    implementation(files("$rootDir/libs/libwebrtc.jar"))
+    implementation(files("$rootDir/${libs.versions.webrtcJarPath.get()}"))
 
     //  Test
     testImplementation(libs.junit.jupiter.api)
