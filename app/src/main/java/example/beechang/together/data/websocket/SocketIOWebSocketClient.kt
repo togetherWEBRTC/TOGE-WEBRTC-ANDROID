@@ -277,8 +277,9 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             val options = IO.Options().apply {
                 auth = mapOf("accessToken" to token)
                 reconnection = true
-                reconnectionDelay = 1000
-                reconnectionAttempts = 3
+                randomizationFactor = RANDOMIZATION_FACTOR
+                reconnectionDelay = RECONNECTION_DELAY
+                reconnectionAttempts = RECONNECTION_ATTEMPTS
             }
             socket?.off()
             socket = IO.socket(BuildConfig.WEBSOCKET_URL, options)
@@ -286,5 +287,11 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         } catch (e: Exception) {
             throw e
         }
+    }
+
+    companion object {
+        const val RANDOMIZATION_FACTOR = 0.7 // disconnet 0~1700ms / 0~3400ms / 0~6800ms
+        const val RECONNECTION_DELAY = 1000L
+        const val RECONNECTION_ATTEMPTS = 5
     }
 }
