@@ -8,6 +8,7 @@ import kotlinx.serialization.KSerializer
 interface WebSocketClient {
     var isConnected: Boolean
     val eventFlow: Flow<WebSocketEventResponse>
+    val connectionStateFlow: Flow<WebSocketConnectionState>
     suspend fun connect(token: String): Boolean
     suspend fun disconnect(): Boolean
     suspend fun <RESP : Any> emitWithAck(
@@ -20,5 +21,14 @@ interface WebSocketClient {
         request: REQ,
         responseType: KSerializer<RESP>
     ): TogeResult<RESP>
+}
+
+enum class WebSocketConnectionState {
+    CONNECTED,
+    DISCONNECTED,
+    RECONNECTING,
+    RECONNECTED,
+    FAILED_RECONNECT,
+    PENDING
 }
 

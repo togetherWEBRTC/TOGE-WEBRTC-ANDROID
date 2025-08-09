@@ -17,8 +17,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
@@ -31,6 +34,7 @@ import java.net.SocketTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 
@@ -39,7 +43,8 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
 
     private var socket: Socket? = null
 
-    override var isConnected = false
+    override var isConnected: Boolean = false
+        get() = _connectionStateFlow.value == WebSocketConnectionState.CONNECTED
 
     private var currentToken: String? = null
 
@@ -49,6 +54,9 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     override val eventFlow: SharedFlow<WebSocketEventResponse> = _eventFlow
+
+    private val _connectionStateFlow = MutableStateFlow(WebSocketConnectionState.PENDING)
+    override val connectionStateFlow: Flow<WebSocketConnectionState> = _connectionStateFlow
 
     private val job = SupervisorJob()
     override val coroutineContext: CoroutineContext = job + Dispatchers.IO
@@ -68,21 +76,15 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             }
 
             initializeSocket(token)
-
             val socket = socket ?: return false
-            val resultDeferred = async { getConnectionResult() }
+
+            val isSuccessSocketConnection = async { isSuccessSocketConnection() }
+            listeningEvent()
             socket.connect()
 
-            val result = resultDeferred.await().isSuccess
-            isConnected = result
-
-            if (result) {
-                socket.off()
-                listeningEvent()
-            }
-            return result
+            return isSuccessSocketConnection.await()
         } catch (e: Exception) {
-            isConnected = false
+            _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             Log.e("SocketIOWebSocketClient", "Error connecting socket: ${e.message}")
             e.printStackTrace()
             return false
@@ -97,7 +99,9 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
                     it.disconnect()
                     val result = disconnectDeferred.await()
                     it.off()
-                    isConnected = false
+                    if (result) {
+                        _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                    }
                     result
                 } else {
                     true
@@ -106,10 +110,23 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
                 true
             }
         } catch (e: Exception) {
-            isConnected = false
+            _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             Log.e("SocketIOWebSocketClient", "Error disconnecting socket: ${e.message}")
             e.printStackTrace()
             false
+        }
+    }
+
+    private suspend fun isSuccessSocketConnection(): Boolean = suspendCancellableCoroutine { cont ->
+        socket?.let {
+            it.on(Socket.EVENT_CONNECT) {
+                _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                cont.resume(true)
+            }
+            it.on(Socket.EVENT_DISCONNECT) {
+                _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                cont.resume(false)
+            }
         }
     }
 
@@ -220,56 +237,6 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         }
         socket?.on(Socket.EVENT_DISCONNECT, listener)
         return deferred.await()
-    }
-
-    private suspend fun getConnectionResult(): Result<Boolean> {
-        val deferred = CompletableDeferred<Result<Boolean>>()
-
-        var connectListenerRef: Emitter.Listener? = null
-        var authErrorListenerRef: Emitter.Listener? = null
-        var connectErrorListenerRef: Emitter.Listener? = null
-
-        fun cleanupAllListeners() {
-            socket?.apply {
-                connectListenerRef?.let { off(Socket.EVENT_CONNECT, it) }
-                authErrorListenerRef?.let { off(SocketEventConstants.AUTH_ERROR, it) }
-                connectErrorListenerRef?.let { off(Socket.EVENT_CONNECT_ERROR, it) }
-            }
-        }
-
-        val connectListener = Emitter.Listener { _ ->
-            isConnected = true
-            cleanupAllListeners()
-            deferred.complete(Result.success(true))
-        }
-
-        connectListenerRef = connectListener
-        val authErrorListener = Emitter.Listener { args ->
-            val error = args.firstOrNull()?.toString() ?: "Unknown auth error"
-            cleanupAllListeners()
-            deferred.complete(Result.failure(Exception("Authentication error: $error")))
-        }
-        authErrorListenerRef = authErrorListener
-
-        val connectErrorListener = Emitter.Listener { args ->
-            val error = args.firstOrNull()?.toString() ?: "Unknown connection error"
-            cleanupAllListeners()
-            deferred.complete(Result.failure(Exception("Connection error: $error")))
-        }
-        connectErrorListenerRef = connectErrorListener
-
-        socket?.apply {
-            on(Socket.EVENT_CONNECT, connectListener)
-            on(SocketEventConstants.AUTH_ERROR, authErrorListener)
-            on(Socket.EVENT_CONNECT_ERROR, connectErrorListener)
-        }
-
-        try {
-            return deferred.await()
-        } catch (e: Exception) {
-            cleanupAllListeners()
-            throw e
-        }
     }
 
     private fun initializeSocket(token: String) {
