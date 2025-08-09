@@ -2,6 +2,7 @@ package example.beechang.together.domain.repository
 
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.model.RoomCode
+import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
 import example.beechang.together.domain.model.RoomWaitingMembers
 import example.beechang.together.domain.model.UpdatedRoomParticipant
@@ -31,4 +32,5 @@ interface RoomRepository {
     suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<UpdatedRoomParticipant>>
     suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomParticipant>>
     suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomParticipant>>
+    suspend fun receiveRoomConnectionState() : Flow<TogeResult<RoomConnectionState>>
 }
