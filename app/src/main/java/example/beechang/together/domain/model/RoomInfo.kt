@@ -49,4 +49,5 @@ enum class RoomConnectionState {
     RECONNECTING,
     RECONNECTED,
     FAILED_RECONNECT,
+    PENDING
 }
