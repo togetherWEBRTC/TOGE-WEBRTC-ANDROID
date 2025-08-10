@@ -8,6 +8,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import io.socket.client.Ack
 import io.socket.client.IO
+import io.socket.client.Manager
 import io.socket.client.Socket
 import io.socket.emitter.Emitter
 import kotlinx.coroutines.CompletableDeferred
@@ -79,7 +80,10 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             val socket = socket ?: return false
 
             val isSuccessSocketConnection = async { isSuccessSocketConnection() }
-            listeningEvent()
+            launch {
+                setSocketConnectionState()
+                listeningEvent()
+            }
             socket.connect()
 
             return isSuccessSocketConnection.await()
@@ -114,44 +118,6 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             Log.e("SocketIOWebSocketClient", "Error disconnecting socket: ${e.message}")
             e.printStackTrace()
             false
-        }
-    }
-
-    private suspend fun isSuccessSocketConnection(): Boolean = suspendCancellableCoroutine { cont ->
-        socket?.let {
-            it.on(Socket.EVENT_CONNECT) {
-                _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
-                cont.resume(true)
-            }
-            it.on(Socket.EVENT_DISCONNECT) {
-                _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
-                cont.resume(false)
-            }
-        }
-    }
-
-    private fun listeningEvent() {
-        socket?.let { socket ->
-            SocketEventConstants.INCOMING_EVENTS.forEach { eventName ->
-                socket.on(eventName) { args ->
-                    launch {
-                        val data = args.firstOrNull()
-                        val jsonData = when {
-                            data == null -> null
-                            data is String && data.startsWith("{") -> data
-                            else -> {
-                                try {
-                                    JSONObject(data.toString()).toString()
-                                } catch (e: Exception) {
-                                    """{"data":"${data.toString().replace("\"", "\\\"")}"}"""
-                                }
-                            }
-                        }
-                        Log.d("SocketIOWebSocketClient", "Event: $eventName, Data: $jsonData")
-                        _eventFlow.emit(WebSocketEventResponse(eventName, jsonData))
-                    }
-                }
-            }
         }
     }
 
@@ -253,6 +219,68 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             currentToken = token
         } catch (e: Exception) {
             throw e
+        }
+    }
+
+    private suspend fun isSuccessSocketConnection(): Boolean = suspendCancellableCoroutine { cont ->
+        socket?.let {
+            it.run {
+                on(Socket.EVENT_CONNECT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                    cont.resume(true)
+                }
+                on(Socket.EVENT_CONNECT_ERROR) {
+                    _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                    cont.resume(false)
+                }
+                on(Socket.EVENT_DISCONNECT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                    cont.resume(false)
+                }
+            }
+        }
+    }
+
+    private fun setSocketConnectionState() {
+        socket?.let {
+            it.run {
+                on(Manager.EVENT_RECONNECT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.RECONNECTED }
+                    _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                }
+                on(Manager.EVENT_RECONNECT_ATTEMPT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.RECONNECTING }
+                }
+                on(Manager.EVENT_RECONNECT_FAILED) {
+                    _connectionStateFlow.update { WebSocketConnectionState.FAILED_RECONNECT }
+                    _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                }
+            }
+        }
+    }
+
+    private fun listeningEvent() {
+        socket?.let { socket ->
+            SocketEventConstants.INCOMING_EVENTS.forEach { eventName ->
+                socket.on(eventName) { args ->
+                    launch {
+                        val data = args.firstOrNull()
+                        val jsonData = when {
+                            data == null -> null
+                            data is String && data.startsWith("{") -> data
+                            else -> {
+                                try {
+                                    JSONObject(data.toString()).toString()
+                                } catch (e: Exception) {
+                                    """{"data":"${data.toString().replace("\"", "\\\"")}"}"""
+                                }
+                            }
+                        }
+                        Log.d("SocketIOWebSocketClient", "Event: $eventName, Data: $jsonData")
+                        _eventFlow.emit(WebSocketEventResponse(eventName, jsonData))
+                    }
+                }
+            }
         }
     }
 
