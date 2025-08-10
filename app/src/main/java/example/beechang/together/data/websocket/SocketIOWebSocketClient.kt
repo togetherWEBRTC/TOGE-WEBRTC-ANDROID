@@ -227,15 +227,15 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             it.run {
                 on(Socket.EVENT_CONNECT) {
                     _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
-                    cont.resume(true)
+                    if (cont.isActive) cont.resume(true)
                 }
                 on(Socket.EVENT_CONNECT_ERROR) {
                     _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
-                    cont.resume(false)
+                    if (cont.isActive) cont.resume(false)
                 }
                 on(Socket.EVENT_DISCONNECT) {
                     _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
-                    cont.resume(false)
+                    if (cont.isActive) cont.resume(false)
                 }
             }
         }
