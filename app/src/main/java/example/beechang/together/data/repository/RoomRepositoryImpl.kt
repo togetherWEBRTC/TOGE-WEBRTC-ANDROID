@@ -2,17 +2,20 @@ package example.beechang.together.data.repository
 
 import example.beechang.together.data.response.handler.mapSuccessOrProvideError
 import example.beechang.together.data.websocket.RoomDataSource
+import example.beechang.together.data.websocket.WebSocketConnectionState
 import example.beechang.together.domain.data.LocalPreference
 import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
 import example.beechang.together.domain.data.mapToge
 import example.beechang.together.domain.model.RoomCode
+import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
 import example.beechang.together.domain.model.RoomWaitingMembers
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import example.beechang.together.domain.repository.RoomRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -100,5 +103,17 @@ class RoomRepositoryImpl @Inject constructor(
         return roomDataSource.receiveRoomNotifyCameraStatus()
             .mapToge { it.toParticipant() }
     }
+
+    override suspend fun receiveRoomConnectionState(): Flow<RoomConnectionState> =
+        roomDataSource.receiveRoomConnectionState().map {
+            when (it) {
+                WebSocketConnectionState.CONNECTED -> RoomConnectionState.CONNECTED
+                WebSocketConnectionState.DISCONNECTED -> RoomConnectionState.DISCONNECTED
+                WebSocketConnectionState.RECONNECTING -> RoomConnectionState.RECONNECTING
+                WebSocketConnectionState.RECONNECTED -> RoomConnectionState.RECONNECTED
+                WebSocketConnectionState.FAILED_RECONNECT -> RoomConnectionState.FAILED_RECONNECT
+                WebSocketConnectionState.PENDING -> RoomConnectionState.PENDING
+            }
+        }
 
 }

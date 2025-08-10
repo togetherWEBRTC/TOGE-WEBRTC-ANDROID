@@ -152,5 +152,8 @@ class RoomDataSourceImpl @Inject constructor(
             resType = RoomNotifyChangingCameraStatusResponse.serializer()
         )
 
+    override suspend fun receiveRoomConnectionState(): Flow<WebSocketConnectionState> =
+        webSocketClient.connectionStateFlow
+
 }
 
