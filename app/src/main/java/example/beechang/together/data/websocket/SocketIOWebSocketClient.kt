@@ -244,16 +244,15 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
     private fun setSocketConnectionState() {
         socket?.let {
             it.run {
-                on(Manager.EVENT_RECONNECT) {
+                io().on(Manager.EVENT_RECONNECT) {
                     _connectionStateFlow.update { WebSocketConnectionState.RECONNECTED }
                     _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
                 }
-                on(Manager.EVENT_RECONNECT_ATTEMPT) {
+                io().on(Manager.EVENT_RECONNECT_ATTEMPT) {
                     _connectionStateFlow.update { WebSocketConnectionState.RECONNECTING }
                 }
-                on(Manager.EVENT_RECONNECT_FAILED) {
+                io().on(Manager.EVENT_RECONNECT_FAILED) {
                     _connectionStateFlow.update { WebSocketConnectionState.FAILED_RECONNECT }
-                    _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
                 }
             }
         }
@@ -285,8 +284,8 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
     }
 
     companion object {
-        const val RANDOMIZATION_FACTOR = 0.7 // disconnet 0~1700ms / 0~3400ms / 0~6800ms
-        const val RECONNECTION_DELAY = 1000L
+        const val RANDOMIZATION_FACTOR = 0.1 // disconnet 0~1700ms / 0~3400ms / 0~6800ms
+        const val RECONNECTION_DELAY = 200L
         const val RECONNECTION_ATTEMPTS = 5
     }
 }
