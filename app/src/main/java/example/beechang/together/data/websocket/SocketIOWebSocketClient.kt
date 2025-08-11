@@ -10,14 +10,13 @@ import io.socket.client.Ack
 import io.socket.client.IO
 import io.socket.client.Manager
 import io.socket.client.Socket
-import io.socket.emitter.Emitter
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -235,7 +234,10 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             it.run {
                 io().on(Manager.EVENT_RECONNECT) {
                     _connectionStateFlow.update { WebSocketConnectionState.RECONNECTED }
-                    _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                    launch {
+                        delay(10)
+                        _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                    }
                 }
                 io().on(Manager.EVENT_RECONNECT_ATTEMPT) {
                     _connectionStateFlow.update { WebSocketConnectionState.RECONNECTING }
