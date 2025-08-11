@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import javax.inject.Inject
 
-class ReceiveDisconnectedRoomUseCase @Inject constructor(
+class ReceiveRoomDisconnectedUseCase @Inject constructor(
     private val receiveRoomConnectionStateUseCase: ReceiveRoomConnectionStateUseCase
 ) {
     suspend operator fun invoke(): Flow<RoomConnectionState> =
