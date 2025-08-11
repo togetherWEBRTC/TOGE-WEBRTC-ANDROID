@@ -67,6 +67,7 @@ fun CallRoomRouter(
     var isShowDialogForWrongRoomCode by remember { mutableStateOf(false) }
     var isShowDialogDisconnectRoom by remember { mutableStateOf(false) }
     var isShowDialogPermission by remember { mutableStateOf(false) }
+    var isShowDialogConnectionDisconnected by remember { mutableStateOf(false) }
 
     val permissionHandler =
         rememberMultiPermissionHandler(
@@ -199,8 +200,8 @@ fun CallRoomRouter(
 
     LaunchedEffect(roomViewModel) {
         roomViewModel.errorEffect.collect { error ->
-            if (error is TogeError.FailedToCreateRoom) {
-                //todo show error dialog -> out of room
+            if (error is TogeError.FailedToCreateRoom || error is TogeError.FailedToConnectRoom) {
+                isShowDialogConnectionDisconnected = true
             } else if (error is TogeError.RoomNotFound) {
 
             }
@@ -231,6 +232,7 @@ fun CallRoomRouter(
         isShowParticipantBottomSheet = isShowParticipantBottomSheet,
         isShowDialogForWrongRoomCode = isShowDialogForWrongRoomCode,
         isShowDialogDisconnectRoom = isShowDialogDisconnectRoom,
+        isShowDialogConnectionDisconnected = isShowDialogConnectionDisconnected,
         isShowDialogPermission = isShowDialogPermission,
         /* EVENT */
         onEventDisconnect = {
@@ -242,6 +244,7 @@ fun CallRoomRouter(
         onEventShowDisconnectDialog = { isShowDialogDisconnectRoom = true },
         onEventDismissPermissionDialog = { isShowDialogPermission = false },
         onEventDismissWrongRoomCodeDialog = { isShowDialogForWrongRoomCode = false },
+        onEventDismissConnectionDisconnected = { isShowDialogConnectionDisconnected = false },
         onEventSwitchCamera = { signallingViewModel.onEvent(SwitchCamera) },
         onEventToggleOnOffCamera = handleToggleCamera,
         onEventToggleOnOffMic = handleToggleMic,
@@ -272,6 +275,7 @@ fun CallRoomScreen(
     isSpeakerMuted: Boolean = false,
     isShowParticipantBottomSheet: Boolean = false,
     isShowDialogForWrongRoomCode: Boolean = false,
+    isShowDialogConnectionDisconnected: Boolean = false,
     isShowDialogDisconnectRoom: Boolean = false,
     isShowDialogPermission: Boolean = false,
     /* EVENT */
@@ -280,6 +284,7 @@ fun CallRoomScreen(
     onEventShowDisconnectDialog: () -> Unit = {},
     onEventDismissPermissionDialog: () -> Unit = {},
     onEventDismissWrongRoomCodeDialog: () -> Unit = {},
+    onEventDismissConnectionDisconnected: () -> Unit = {},
     onEventSwitchCamera: () -> Unit = { },
     onEventToggleOnOffCamera: (Boolean) -> Unit = { },
     onEventToggleOnOffMic: (Boolean) -> Unit = { },
@@ -295,6 +300,16 @@ fun CallRoomScreen(
     }
 
     /* DIALOG */
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowDialogConnectionDisconnected,
+        title = stringResource(R.string.end_call),
+        content = stringResource(R.string.connection_problem),
+        onConfirm = {
+            onEventDisconnect()
+            onEventDismissConnectionDisconnected()
+        }
+    )
+
     TogeOnlyConfirmBtnDialog(
         isShowDialog = isShowDialogForWrongRoomCode,
         title = stringResource(R.string.error),

@@ -8,6 +8,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.usecase.room.CreateRoomUseCase
 import example.beechang.together.domain.usecase.room.DecideWaitingEnterFromHostUseCase
 import example.beechang.together.domain.usecase.room.DisconnectRoomUseCase
+import example.beechang.together.domain.usecase.room.ReceiveRoomDisconnectedUseCase
 import example.beechang.together.domain.usecase.room.ReceiveWaitingNotifyUseCase
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
@@ -23,6 +24,7 @@ class CallRoomViewModel @Inject constructor(
     private val disconnectRoomUseCase: DisconnectRoomUseCase,
     private val decideWaitingMemberEnterRoomUseCase: DecideWaitingEnterFromHostUseCase,
     private val receiveWaitingNotifyUseCase: ReceiveWaitingNotifyUseCase,
+    private val receiveRoomDisconnectedUseCase: ReceiveRoomDisconnectedUseCase,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<CallRoomState, CallRoomEvent, CallRoomEffect>(
     savedStateHandle, CallRoomState(), CALL_ROOM_STATE
@@ -36,6 +38,7 @@ class CallRoomViewModel @Inject constructor(
         }
 
         listeningWaitingNotify()
+        listeningRoomConnectionState()
     }
 
     override fun onEvent(event: CallRoomEvent) {
@@ -106,6 +109,13 @@ class CallRoomViewModel @Inject constructor(
                     updateState { copy(waitingParticipants = waitingList) }
                 }
             )
+    }
+
+    private fun listeningRoomConnectionState() = viewModelScope.launch {
+        receiveRoomDisconnectedUseCase.invoke()
+            .collect {
+                sendError(TogeError.FailedToConnectRoom)
+            }
     }
 
 

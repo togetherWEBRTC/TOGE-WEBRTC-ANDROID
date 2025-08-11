@@ -35,4 +35,5 @@ interface RoomDataSource {
     suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<RoomNotifyUpdateParticipantResponse>>
     suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomNotifyChangingMicStatusResponse>>
     suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomNotifyChangingCameraStatusResponse>>
+    suspend fun receiveRoomConnectionState(): Flow<WebSocketConnectionState>
 }
