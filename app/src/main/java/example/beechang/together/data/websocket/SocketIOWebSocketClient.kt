@@ -99,20 +99,12 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         return try {
             socket?.let {
                 if (isConnected) {
-                    val disconnectDeferred = async { getResultEventDisconnect() }
                     it.disconnect()
-                    val result = disconnectDeferred.await()
-                    it.off()
-                    if (result) {
-                        _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
-                    }
-                    result
-                } else {
-                    true
                 }
-            } ?: run {
-                true
+                clearSocketIoEvent()
+                _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             }
+            true
         } catch (e: Exception) {
             _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             Log.e("SocketIOWebSocketClient", "Error disconnecting socket: ${e.message}")
@@ -195,16 +187,6 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         return json.decodeFromString(responseType, jsonObj.toString())
     }
 
-
-    private suspend fun getResultEventDisconnect(): Boolean {
-        val deferred = CompletableDeferred<Boolean>()
-        val listener = Emitter.Listener {
-            deferred.complete(true)
-        }
-        socket?.on(Socket.EVENT_DISCONNECT, listener)
-        return deferred.await()
-    }
-
     private fun initializeSocket(token: String) {
         try {
             val options = IO.Options().apply {
@@ -214,11 +196,18 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
                 reconnectionDelay = RECONNECTION_DELAY
                 reconnectionAttempts = RECONNECTION_ATTEMPTS
             }
-            socket?.off()
+            clearSocketIoEvent()
             socket = IO.socket(BuildConfig.WEBSOCKET_URL, options)
             currentToken = token
         } catch (e: Exception) {
             throw e
+        }
+    }
+
+    private fun clearSocketIoEvent(){
+        socket?.let {
+            it.off()
+            it.io().off()
         }
     }
 
@@ -252,6 +241,7 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
                     _connectionStateFlow.update { WebSocketConnectionState.RECONNECTING }
                 }
                 io().on(Manager.EVENT_RECONNECT_FAILED) {
+                    launch { this@SocketIOWebSocketClient.disconnect() }
                     _connectionStateFlow.update { WebSocketConnectionState.FAILED_RECONNECT }
                 }
             }
