@@ -284,8 +284,10 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
     }
 
     companion object {
-        const val RANDOMIZATION_FACTOR = 0.1 // disconnet 0~1700ms / 0~3400ms / 0~6800ms
-        const val RECONNECTION_DELAY = 200L
-        const val RECONNECTION_ATTEMPTS = 5
+        // 서버 20초 ~ 45초 reconnection 대기
+        // reconnect 350~650ms / 700~1300ms / 1400~2600ms / 2800~5200ms / 5600~10400ms / 11200~20800ms / 22400~41600ms
+        const val RANDOMIZATION_FACTOR = 0.2
+        const val RECONNECTION_DELAY = 400L
+        const val RECONNECTION_ATTEMPTS = 7
     }
 }
