@@ -119,6 +119,15 @@ class UserRepositoryImpl @Inject constructor(
         return TogeResult.Success(true)
     }
 
+    override suspend fun withdraw(): TogeResult<Boolean> {
+        return userDataSource.withdraw().onSuccess {
+            localPreference.run {
+                loginState = LoginState.Logout.name
+                clear()
+            }
+        }.map { it.toSuccessBoolean() }
+    }
+
     override suspend fun getLoginStateFlow(): Flow<TogeResult<LoginState>> =
         localPreference.loginStateFlow.map {
             TogeResult.Success(LoginState.getLoginState(it))

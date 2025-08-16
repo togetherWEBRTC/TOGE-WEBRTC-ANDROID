@@ -8,6 +8,7 @@ import example.beechang.together.domain.usecase.user.GetLoginStateUseCase
 import example.beechang.together.domain.usecase.user.GetNewProfileImageUseCase
 import example.beechang.together.domain.usecase.user.GetUserInfoUseCase
 import example.beechang.together.domain.usecase.user.RequestLogoutUseCase
+import example.beechang.together.domain.usecase.user.RequestWithdrawUseCase
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
 import example.beechang.together.ui.utils.UiEvent
@@ -22,6 +23,7 @@ class UserMyPageViewModel @Inject constructor(
     private val getNewProfileImageUseCase: GetNewProfileImageUseCase,
     private val getUserInfoUseCase: GetUserInfoUseCase,
     private val requestLogoutUseCase: RequestLogoutUseCase,
+    private val requestWithdrawUseCase: RequestWithdrawUseCase,
     private val getLoginStateUseCase: GetLoginStateUseCase,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<UserMyPageState, UserMyPageEvent, UserMyPageEffect>(
@@ -35,6 +37,10 @@ class UserMyPageViewModel @Inject constructor(
 
             UserMyPageEvent.OnLogout -> {
                 logout()
+            }
+
+            UserMyPageEvent.OnWithdraw -> {
+                withdraw()
             }
         }
     }
@@ -90,6 +96,14 @@ class UserMyPageViewModel @Inject constructor(
             onFinally = { updateState { copy(isLoading = false) } },
         )
 
+    private fun withdraw() =
+        handleEvent(
+            action = { requestWithdrawUseCase.invoke() },
+            onStart = { updateState { copy(isLoading = true) } },
+            onSuccess = { sendEffect(UserMyPageEffect.SuccessWithdraw) },
+            onFinally = { updateState { copy(isLoading = false) } },
+        )
+
 
     companion object {
         private const val USER_MY_PAGE_STATE = "userMyPageState"
@@ -107,8 +121,10 @@ data class UserMyPageState(
 sealed class UserMyPageEvent : UiEvent {
     object OnModifyProfileImage : UserMyPageEvent()
     object OnLogout : UserMyPageEvent()
+    object OnWithdraw : UserMyPageEvent()
 }
 
 sealed class UserMyPageEffect : UiEffect {
     object SuccessModifyProfileImage : UserMyPageEffect()
+    object SuccessWithdraw : UserMyPageEffect()
 }

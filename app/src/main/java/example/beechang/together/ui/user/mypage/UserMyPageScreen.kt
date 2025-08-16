@@ -47,6 +47,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.LoginState
 import example.beechang.together.ui.component.card.TogeProfileItem
 import example.beechang.together.ui.component.dialog.TogeDialog
+import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
 import example.beechang.together.ui.component.scaffold.TogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
 import example.beechang.together.ui.component.topbar.TogeSimpleBackTopBar
@@ -71,6 +72,8 @@ fun UserMyPageRouter(
 
     /* Dialog States */
     var isShowDoubleCheckModifyProfileDialog by remember { mutableStateOf(false) }
+    var isShowWithdrawDialog by remember { mutableStateOf(false) }
+    var isShowWithdrawSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.sideEffect.collect {
@@ -80,6 +83,9 @@ fun UserMyPageRouter(
                         message = context.getString(R.string.my_profile_edit_success),
                         actionLabel = context.getString(R.string.ok),
                     )
+                }
+                UserMyPageEffect.SuccessWithdraw -> {
+                    isShowWithdrawSuccessDialog = true
                 }
             }
         }
@@ -98,7 +104,7 @@ fun UserMyPageRouter(
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.loginState.collect { state ->
-            if (state == LoginState.Logout) {
+            if (state == LoginState.Logout && !isShowWithdrawSuccessDialog) {
                 HomeNavDestination.navigateToHome(navController)
             } else if (state == LoginState.SessionExpired) {
                 snackbarHostState.showSnackbar(
@@ -122,6 +128,8 @@ fun UserMyPageRouter(
         /* STATE */
         state = state,
         isShowDoubleCheckModifyProfileDialog = isShowDoubleCheckModifyProfileDialog,
+        isShowWithdrawDialog = isShowWithdrawDialog,
+        isShowWithdrawSuccessDialog = isShowWithdrawSuccessDialog,
         /* EVENT */
         onEventShowModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = true },
         onEventModifyProfileImage = {
@@ -129,6 +137,16 @@ fun UserMyPageRouter(
             userPageViewModel.onEvent(UserMyPageEvent.OnModifyProfileImage)
         },
         onEventDismissModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = false },
+        onEventShowWithdrawDialog = { isShowWithdrawDialog = true },
+        onEventWithdraw = {
+            isShowWithdrawDialog = false
+            userPageViewModel.onEvent(UserMyPageEvent.OnWithdraw)
+        },
+        onEventDismissWithdrawDialog = { isShowWithdrawDialog = false },
+        onEventConfirmWithdrawSuccess = {
+            isShowWithdrawSuccessDialog = false
+            HomeNavDestination.navigateToHome(navController)
+        },
         onEventLogout = { userPageViewModel.onEvent(UserMyPageEvent.OnLogout) },
         onClickIsPreparing = {
             coroutineScope.launch {
@@ -150,10 +168,16 @@ fun UserMyPageScreen(
     state: UserMyPageState = UserMyPageState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     isShowDoubleCheckModifyProfileDialog: Boolean = false,
+    isShowWithdrawDialog: Boolean = false,
+    isShowWithdrawSuccessDialog: Boolean = false,
     /* EVENT */
     onEventShowModifyProfileDialog: () -> Unit = {},
     onEventModifyProfileImage: () -> Unit = {},
     onEventDismissModifyProfileDialog: () -> Unit = {},
+    onEventShowWithdrawDialog: () -> Unit = {},
+    onEventWithdraw: () -> Unit = {},
+    onEventDismissWithdrawDialog: () -> Unit = {},
+    onEventConfirmWithdrawSuccess: () -> Unit = {},
     onEventLogout: () -> Unit = {},
     onClickIsPreparing: () -> Unit = {},
     /* NAVIGATION */
@@ -170,6 +194,26 @@ fun UserMyPageScreen(
         dismissOnClickOutside = true,
         onConfirm = { onEventModifyProfileImage() },
         onDismiss = { onEventDismissModifyProfileDialog() }
+    )
+
+    TogeDialog(
+        isShowDialog = isShowWithdrawDialog,
+        title = stringResource(R.string.withdraw),
+        content = stringResource(R.string.withdraw_prompt),
+        dismissOnBackPress = true,
+        dismissOnClickOutside = true,
+        onConfirm = { onEventWithdraw() },
+        onDismiss = { onEventDismissWithdrawDialog() }
+    )
+
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowWithdrawSuccessDialog,
+        title = stringResource(R.string.withdraw),
+        content = stringResource(R.string.withdraw_success),
+        confirmButtonText = stringResource(R.string.ok),
+        dismissOnBackPress = false,
+        dismissOnClickOutside = false,
+        onConfirm = { onEventConfirmWithdrawSuccess() },
     )
 
     TogeScaffold(
@@ -276,6 +320,16 @@ fun UserMyPageScreen(
                     color = LocalTogeAppColor.current.grey600,
                     modifier = Modifier.clickable {
                         onEventLogout()
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = stringResource(R.string.withdraw),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LocalTogeAppColor.current.grey600,
+                    modifier = Modifier.clickable {
+                        onEventShowWithdrawDialog()
                     }
                 )
             }
