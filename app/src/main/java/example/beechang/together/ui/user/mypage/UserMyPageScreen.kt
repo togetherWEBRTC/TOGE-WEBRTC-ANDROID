@@ -1,5 +1,6 @@
 package example.beechang.together.ui.user.mypage
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -84,6 +87,7 @@ fun UserMyPageRouter(
                         actionLabel = context.getString(R.string.ok),
                     )
                 }
+
                 UserMyPageEffect.SuccessWithdraw -> {
                     isShowWithdrawSuccessDialog = true
                 }
@@ -161,6 +165,7 @@ fun UserMyPageRouter(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UserMyPageScreen(
     modifier: Modifier = Modifier,
@@ -222,13 +227,14 @@ fun UserMyPageScreen(
         snackbarHost = { TogeSnackbarHost(hostState = snackbarHostState) },
         isLoading = state.isLoading,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             Spacer(modifier = Modifier.height(32.dp))
 
 
@@ -334,6 +340,7 @@ fun UserMyPageScreen(
                 )
             }
 
+            }
         }
     }
 }
