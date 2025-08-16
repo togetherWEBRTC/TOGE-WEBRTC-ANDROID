@@ -235,111 +235,110 @@ fun UserMyPageScreen(
                     .verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
 
-            // Profile Image
-            ConstraintLayout(
-                modifier = Modifier.wrapContentSize()
-            ) {
-                CircularImage(
-                    modifier = Modifier.constrainAs(ref = createRef()) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    },
-                    imageUrl = state.profileImageUrl,
-                    size = 160.dp,
-                    borderWidth = 4.dp,
-                )
-                ClickShrinkEffect(
-                    modifier = Modifier.constrainAs(ref = createRef()) {
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    },
-                    onClick = { onEventShowModifyProfileDialog() }
+                // Profile Image
+                ConstraintLayout(
+                    modifier = Modifier.wrapContentSize()
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .width(40.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
-                            .background(color = LocalTogeAppColor.current.primary500),
-                        contentAlignment = Alignment.Center
+                    CircularImage(
+                        modifier = Modifier.constrainAs(ref = createRef()) {
+                            top.linkTo(parent.top)
+                            start.linkTo(parent.start)
+                            end.linkTo(parent.end)
+                            bottom.linkTo(parent.bottom)
+                        },
+                        imageUrl = state.profileImageUrl,
+                        size = 160.dp,
+                        borderWidth = 4.dp,
+                    )
+                    ClickShrinkEffect(
+                        modifier = Modifier.constrainAs(ref = createRef()) {
+                            end.linkTo(parent.end)
+                            bottom.linkTo(parent.bottom)
+                        },
+                        onClick = { onEventShowModifyProfileDialog() }
                     ) {
-                        CircularImage(
-                            imageUrl = R.drawable.ic_union,
-                            size = 24.dp,
-                            borderWidth = 0.dp,
-                            contentScale = ContentScale.Fit,
-                        )
+                        Box(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .width(40.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
+                                .background(color = LocalTogeAppColor.current.primary500),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularImage(
+                                imageUrl = R.drawable.ic_union,
+                                size = 24.dp,
+                                borderWidth = 0.dp,
+                                contentScale = ContentScale.Fit,
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = stringResource(R.string.welcome_user_nickname, state.nickname),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.id),
-                value = state.userId,
-                showChangeButton = false
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.nickname),
-                value = state.nickname,
-                showChangeButton = true,
-                onChangeClick = {
-                    onClickIsPreparing()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.password),
-                description = stringResource(R.string.password_description),
-                showChangeButton = true,
-                onChangeClick = {
-                    onClickIsPreparing()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+                Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = stringResource(R.string.logout),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalTogeAppColor.current.grey600,
-                    modifier = Modifier.clickable {
-                        onEventLogout()
+                    text = stringResource(R.string.welcome_user_nickname, state.nickname),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.id),
+                    value = state.userId,
+                    showChangeButton = false
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.nickname),
+                    value = state.nickname,
+                    showChangeButton = true,
+                    onChangeClick = {
+                        onClickIsPreparing()
                     }
                 )
-                Spacer(modifier = Modifier.width(8.dp))
 
-                Text(
-                    text = stringResource(R.string.withdraw),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalTogeAppColor.current.grey600,
-                    modifier = Modifier.clickable {
-                        onEventShowWithdrawDialog()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.password),
+                    description = stringResource(R.string.password_description),
+                    showChangeButton = true,
+                    onChangeClick = {
+                        onClickIsPreparing()
                     }
                 )
-            }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.logout),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LocalTogeAppColor.current.grey600,
+                        modifier = Modifier.clickable {
+                            onEventLogout()
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = stringResource(R.string.withdraw),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LocalTogeAppColor.current.grey600,
+                        modifier = Modifier.clickable {
+                            onEventShowWithdrawDialog()
+                        }
+                    )
+                }
             }
         }
     }
