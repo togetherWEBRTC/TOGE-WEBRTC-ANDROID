@@ -350,6 +350,7 @@ fun CallRoomScreen(
         modifier = modifier,
         modalSheetState = participantBottomSheetState,
         isShow = isShowParticipantBottomSheet,
+        roomCode = roomState.roomCode,
         waitingParticipants = roomState.waitingParticipants,
         participants = signallingState.toParticipantList(),
         onDismissRequest = { onEventUpdateParticipantBottomSheetState(false) },
