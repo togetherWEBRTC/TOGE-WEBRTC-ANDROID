@@ -2,6 +2,7 @@ package example.beechang.together.data.http.api
 
 import example.beechang.together.data.request.LoginRequest
 import example.beechang.together.data.request.SignupRequest
+import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.LoginResponse
 import example.beechang.together.data.response.RefreshingAccessTokenResponse
 import example.beechang.together.data.response.UserInfoResponse
@@ -40,6 +41,10 @@ class UserDataSourceImpl @Inject constructor(
 
     override suspend fun refreshingAccessToken(): TogeResult<RefreshingAccessTokenResponse> {
         return apiToResult { userApi.refreshingAccessToken() }
+    }
+
+    override suspend fun withdraw(): TogeResult<BaseResponse> {
+        return apiToResult { userApi.withdraw() }
     }
 }
 

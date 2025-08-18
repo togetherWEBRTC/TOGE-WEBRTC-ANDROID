@@ -1,5 +1,6 @@
 package example.beechang.together.ui.user.mypage
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -47,6 +50,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.LoginState
 import example.beechang.together.ui.component.card.TogeProfileItem
 import example.beechang.together.ui.component.dialog.TogeDialog
+import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
 import example.beechang.together.ui.component.scaffold.TogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
 import example.beechang.together.ui.component.topbar.TogeSimpleBackTopBar
@@ -71,6 +75,8 @@ fun UserMyPageRouter(
 
     /* Dialog States */
     var isShowDoubleCheckModifyProfileDialog by remember { mutableStateOf(false) }
+    var isShowWithdrawDialog by remember { mutableStateOf(false) }
+    var isShowWithdrawSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.sideEffect.collect {
@@ -80,6 +86,10 @@ fun UserMyPageRouter(
                         message = context.getString(R.string.my_profile_edit_success),
                         actionLabel = context.getString(R.string.ok),
                     )
+                }
+
+                UserMyPageEffect.SuccessWithdraw -> {
+                    isShowWithdrawSuccessDialog = true
                 }
             }
         }
@@ -98,7 +108,7 @@ fun UserMyPageRouter(
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.loginState.collect { state ->
-            if (state == LoginState.Logout) {
+            if (state == LoginState.Logout && !isShowWithdrawSuccessDialog) {
                 HomeNavDestination.navigateToHome(navController)
             } else if (state == LoginState.SessionExpired) {
                 snackbarHostState.showSnackbar(
@@ -122,6 +132,8 @@ fun UserMyPageRouter(
         /* STATE */
         state = state,
         isShowDoubleCheckModifyProfileDialog = isShowDoubleCheckModifyProfileDialog,
+        isShowWithdrawDialog = isShowWithdrawDialog,
+        isShowWithdrawSuccessDialog = isShowWithdrawSuccessDialog,
         /* EVENT */
         onEventShowModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = true },
         onEventModifyProfileImage = {
@@ -129,6 +141,16 @@ fun UserMyPageRouter(
             userPageViewModel.onEvent(UserMyPageEvent.OnModifyProfileImage)
         },
         onEventDismissModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = false },
+        onEventShowWithdrawDialog = { isShowWithdrawDialog = true },
+        onEventWithdraw = {
+            isShowWithdrawDialog = false
+            userPageViewModel.onEvent(UserMyPageEvent.OnWithdraw)
+        },
+        onEventDismissWithdrawDialog = { isShowWithdrawDialog = false },
+        onEventConfirmWithdrawSuccess = {
+            isShowWithdrawSuccessDialog = false
+            HomeNavDestination.navigateToHome(navController)
+        },
         onEventLogout = { userPageViewModel.onEvent(UserMyPageEvent.OnLogout) },
         onClickIsPreparing = {
             coroutineScope.launch {
@@ -143,6 +165,7 @@ fun UserMyPageRouter(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UserMyPageScreen(
     modifier: Modifier = Modifier,
@@ -150,10 +173,16 @@ fun UserMyPageScreen(
     state: UserMyPageState = UserMyPageState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     isShowDoubleCheckModifyProfileDialog: Boolean = false,
+    isShowWithdrawDialog: Boolean = false,
+    isShowWithdrawSuccessDialog: Boolean = false,
     /* EVENT */
     onEventShowModifyProfileDialog: () -> Unit = {},
     onEventModifyProfileImage: () -> Unit = {},
     onEventDismissModifyProfileDialog: () -> Unit = {},
+    onEventShowWithdrawDialog: () -> Unit = {},
+    onEventWithdraw: () -> Unit = {},
+    onEventDismissWithdrawDialog: () -> Unit = {},
+    onEventConfirmWithdrawSuccess: () -> Unit = {},
     onEventLogout: () -> Unit = {},
     onClickIsPreparing: () -> Unit = {},
     /* NAVIGATION */
@@ -172,114 +201,145 @@ fun UserMyPageScreen(
         onDismiss = { onEventDismissModifyProfileDialog() }
     )
 
+    TogeDialog(
+        isShowDialog = isShowWithdrawDialog,
+        title = stringResource(R.string.withdraw),
+        content = stringResource(R.string.withdraw_prompt),
+        dismissOnBackPress = true,
+        dismissOnClickOutside = true,
+        onConfirm = { onEventWithdraw() },
+        onDismiss = { onEventDismissWithdrawDialog() }
+    )
+
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowWithdrawSuccessDialog,
+        title = stringResource(R.string.withdraw),
+        content = stringResource(R.string.withdraw_success),
+        confirmButtonText = stringResource(R.string.ok),
+        dismissOnBackPress = false,
+        dismissOnClickOutside = false,
+        onConfirm = { onEventConfirmWithdrawSuccess() },
+    )
+
     TogeScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = { TogeSimpleBackTopBar(onClickBack = onClickBack) },
         snackbarHost = { TogeSnackbarHost(hostState = snackbarHostState) },
         isLoading = state.isLoading,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-
-            // Profile Image
-            ConstraintLayout(
-                modifier = Modifier.wrapContentSize()
+        CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CircularImage(
-                    modifier = Modifier.constrainAs(ref = createRef()) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    },
-                    imageUrl = state.profileImageUrl,
-                    size = 160.dp,
-                    borderWidth = 4.dp,
-                )
-                ClickShrinkEffect(
-                    modifier = Modifier.constrainAs(ref = createRef()) {
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    },
-                    onClick = { onEventShowModifyProfileDialog() }
+                Spacer(modifier = Modifier.height(32.dp))
+
+
+                // Profile Image
+                ConstraintLayout(
+                    modifier = Modifier.wrapContentSize()
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .width(40.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
-                            .background(color = LocalTogeAppColor.current.primary500),
-                        contentAlignment = Alignment.Center
+                    CircularImage(
+                        modifier = Modifier.constrainAs(ref = createRef()) {
+                            top.linkTo(parent.top)
+                            start.linkTo(parent.start)
+                            end.linkTo(parent.end)
+                            bottom.linkTo(parent.bottom)
+                        },
+                        imageUrl = state.profileImageUrl,
+                        size = 160.dp,
+                        borderWidth = 4.dp,
+                    )
+                    ClickShrinkEffect(
+                        modifier = Modifier.constrainAs(ref = createRef()) {
+                            end.linkTo(parent.end)
+                            bottom.linkTo(parent.bottom)
+                        },
+                        onClick = { onEventShowModifyProfileDialog() }
                     ) {
-                        CircularImage(
-                            imageUrl = R.drawable.ic_union,
-                            size = 24.dp,
-                            borderWidth = 0.dp,
-                            contentScale = ContentScale.Fit,
-                        )
+                        Box(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .width(40.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
+                                .background(color = LocalTogeAppColor.current.primary500),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularImage(
+                                imageUrl = R.drawable.ic_union,
+                                size = 24.dp,
+                                borderWidth = 0.dp,
+                                contentScale = ContentScale.Fit,
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = stringResource(R.string.welcome_user_nickname, state.nickname),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.id),
-                value = state.userId,
-                showChangeButton = false
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.nickname),
-                value = state.nickname,
-                showChangeButton = true,
-                onChangeClick = {
-                    onClickIsPreparing()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.password),
-                description = stringResource(R.string.password_description),
-                showChangeButton = true,
-                onChangeClick = {
-                    onClickIsPreparing()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+                Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = stringResource(R.string.logout),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalTogeAppColor.current.grey600,
-                    modifier = Modifier.clickable {
-                        onEventLogout()
+                    text = stringResource(R.string.welcome_user_nickname, state.nickname),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.id),
+                    value = state.userId,
+                    showChangeButton = false
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.nickname),
+                    value = state.nickname,
+                    showChangeButton = true,
+                    onChangeClick = {
+                        onClickIsPreparing()
                     }
                 )
-            }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.password),
+                    description = stringResource(R.string.password_description),
+                    showChangeButton = true,
+                    onChangeClick = {
+                        onClickIsPreparing()
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.logout),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LocalTogeAppColor.current.grey600,
+                        modifier = Modifier.clickable {
+                            onEventLogout()
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = stringResource(R.string.withdraw),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LocalTogeAppColor.current.grey600,
+                        modifier = Modifier.clickable {
+                            onEventShowWithdrawDialog()
+                        }
+                    )
+                }
+            }
         }
     }
 }

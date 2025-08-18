@@ -8,6 +8,7 @@ import example.beechang.together.data.response.RefreshingAccessTokenResponse
 import example.beechang.together.data.response.UserInfoResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -37,4 +38,7 @@ interface UserApi {
 
     @POST("api/auth/modify/profile-image")
     suspend fun modifyProfileImage(): Response<UserInfoResponse>
+
+    @DELETE("api/auth/withdraw")
+    suspend fun withdraw(): Response<BaseResponse>
 }

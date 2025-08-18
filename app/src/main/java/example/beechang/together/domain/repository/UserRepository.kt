@@ -21,6 +21,7 @@ interface UserRepository {
     suspend fun getUserInfo(): TogeResult<UserInfo>
     suspend fun getUserInfoFlow(): Flow<TogeResult<UserInfo>>
     suspend fun logout(): TogeResult<Boolean>
+    suspend fun withdraw(): TogeResult<Boolean>
     suspend fun getLoginStateFlow(): Flow<TogeResult<LoginState>>
     suspend fun updateAccessToken(): TogeResult<Boolean>
 }

@@ -27,6 +27,9 @@
     <string name="login">로그인</string>
     <string name="logout">로그아웃</string>
     <string name="signup">회원가입</string>
+    <string name="withdraw">회원탈퇴</string>
+    <string name="withdraw_prompt">회원탈퇴 하시겠습니까?\n삭제 시 복구가 불가능합니다.</string>
+    <string name="withdraw_success">회원탈퇴가 완료되었습니다.</string>
     <string name="enter">입장</string>
     <string name="fail_login">아이디와 비밀번호를 확인해주세요.</string>
     <string name="try_signup">회원가입하기</string>
