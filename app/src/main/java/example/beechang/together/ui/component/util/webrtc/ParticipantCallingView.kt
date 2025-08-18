@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -35,6 +38,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import example.beechang.together.R
 import example.beechang.together.ui.call.room.RoomParticipantUi
 import example.beechang.together.ui.call.room.VideoScaleType
 import example.beechang.together.ui.theme.LocalTogeAppColor
@@ -205,9 +209,21 @@ fun ParticipantCallingView(
                 .wrapContentSize()
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
+
+            if (!participant.isMicrophoneOn) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_mic_off),
+                    contentDescription = "Mic Off",
+                    tint = LocalTogeAppColor.current.white,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .padding(end = 4.dp)
+                )
+            }
+
             Text(
                 text = participant.name,
-                color = Color.White,
+                color =  LocalTogeAppColor.current.white,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
