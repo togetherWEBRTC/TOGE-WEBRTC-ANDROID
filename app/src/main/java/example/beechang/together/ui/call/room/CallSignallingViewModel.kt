@@ -144,6 +144,7 @@ class CallSignallingViewModel @Inject constructor(
                 listenParticipantsForWebrtcData()
                 sendRtcReady()
                 listeningSignallingEvent()
+                listeningSpeakingStatus()
                 updateDevicePermissionStatus()
             }
         }
@@ -280,6 +281,20 @@ class CallSignallingViewModel @Inject constructor(
                     )
                 }
             )
+    }
+
+    private fun listeningSpeakingStatus() = viewModelScope.launch {
+        webRtcManager.speakingStatusFlow
+            .collect { speakingStatusMap ->
+                updateState {
+                    val newParticipants = LinkedHashMap(participants)
+                    speakingStatusMap.forEach { (userId, isSpeaking) ->
+                        newParticipants[userId] =
+                            newParticipants[userId]?.copy(isSpeaking = isSpeaking)
+                    }
+                    copy(participants = newParticipants)
+                }
+            }
     }
 
     private fun sendRtcReady() = viewModelScope.launch {

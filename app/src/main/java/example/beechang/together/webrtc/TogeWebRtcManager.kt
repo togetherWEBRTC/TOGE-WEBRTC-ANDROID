@@ -10,6 +10,7 @@ interface TogeWebRtcManager {
     val eglBase: EglBase
     val participantMapFlow: StateFlow<Map<String, WebRtcData>>
     val signallingEventFlow: SharedFlow<SignallingEvent>
+    val speakingStatusFlow: StateFlow<Map<String, Boolean>>
     fun processAction(action: WebRtcAction)
     fun processActionAsync(action: WebRtcAction)
     fun release()

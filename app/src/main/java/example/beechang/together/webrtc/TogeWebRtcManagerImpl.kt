@@ -6,12 +6,13 @@ import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import example.beechang.together.webrtc.peerconnection.TogePeerConnectionFactory
 import example.beechang.together.webrtc.media.TogeVideoHandler
+import example.beechang.together.webrtc.media.VADMonitor
+import example.beechang.together.webrtc.media.VADMonitorImpl
 import example.beechang.together.webrtc.media.VideoResolutionManager
 import example.beechang.together.webrtc.peerconnection.TogePeerConnection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,8 +44,12 @@ class TogeWebRtcManagerImpl @Inject constructor(
 
     private val videoResolutionManager: VideoResolutionManager = VideoResolutionManager()
 
+    private val vadMonitor: VADMonitor = VADMonitorImpl()
+
     private val _participantMapFlow = MutableStateFlow<Map<String, WebRtcData>>(emptyMap())
     override val participantMapFlow: StateFlow<Map<String, WebRtcData>> = _participantMapFlow
+
+    override val speakingStatusFlow: StateFlow<Map<String, Boolean>> = vadMonitor.speakingStatusFlow
 
     private val _signallingEventFlow = MutableSharedFlow<SignallingEvent>(
         replay = 0,
@@ -163,6 +168,8 @@ class TogeWebRtcManagerImpl @Inject constructor(
 
     override fun release() {
         try {
+            vadMonitor.stop()
+
             videoHandler?.release()
             videoHandler = null
 
@@ -235,6 +242,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
             remoteUserPeerConnection[remoteUserId] = this
             addLocalAudioTrack(localAudioTrack)
             addLocalVideoTrack(localVideoTrack)
+            vadMonitor.addPeer(remoteUserId, this.getPeerConnection())
             if (role == PeerConnectionRole.Offerer) {
                 createOffer()
             }
@@ -258,6 +266,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
         }
 
         isSpeakerMuted = false
+        vadMonitor.start(userId)
     }
 
     private fun createVideoSource(): VideoSource = pcf.createVideoSource().apply {
@@ -394,6 +403,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
                 remove(userId)
             }
         }
+        vadMonitor.removePeer(userId)
         remoteUserPeerConnection.remove(userId)
         pendingIceCandidates.remove(userId)
     }

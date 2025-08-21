@@ -1,9 +1,10 @@
 package example.beechang.together.ui.component.util.webrtc
 
 import android.util.Log
-import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -21,13 +22,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,7 +47,6 @@ import example.beechang.together.ui.utils.WebRtcLifecycleHandler
 import example.beechang.together.webrtc.WebRtcData
 import org.webrtc.EglBase
 import org.webrtc.RendererCommon
-import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoTrack
 
 
@@ -67,16 +67,16 @@ fun ParticipantCallingView(
     }
 
     val currentVideoTrack = remember { mutableStateOf<VideoTrack?>(null) }
-    val surfaceViewRenderer = remember { mutableStateOf<SurfaceViewRenderer?>(null) }
+    val textureViewRenderer = remember { mutableStateOf<TogeTextureViewRenderer?>(null) }
+
     val isInitialized = remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val webRtcLifecycleHandler = WebRtcLifecycleHandler(
             userId = participant.userId,
             videoTrack = currentVideoTrack,
-            surfaceViewRenderer = surfaceViewRenderer,
+            renderer = textureViewRenderer,
             isInitialized = isInitialized,
-            eglBase = eglBase
         )
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -104,7 +104,7 @@ fun ParticipantCallingView(
 
     LaunchedEffect(webRtcData.videoTrack) {
         if (currentVideoTrack.value != webRtcData.videoTrack) {
-            surfaceViewRenderer.value?.let { renderer ->
+            textureViewRenderer.value?.let { renderer ->
                 try {
                     currentVideoTrack.value?.removeSink(renderer)
                     if (isInitialized.value && webRtcData.videoTrack != null) {
@@ -118,8 +118,24 @@ fun ParticipantCallingView(
         }
     }
 
+    val animatedBorderWidth by animateDpAsState(
+        targetValue = if (participant.isSpeaking) 2.dp else 0.dp,
+        animationSpec = tween(durationMillis = 300)
+    )
+
     Box(
         modifier = modifier
+            .then(
+                if (participant.isSpeaking) {
+                    Modifier.border(
+                        width = animatedBorderWidth,
+                        color = LocalTogeAppColor.current.primary700,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .clip(RoundedCornerShape(8.dp))
             .fillMaxSize()
     ) {
@@ -129,49 +145,38 @@ fun ParticipantCallingView(
                 .fillMaxSize()
                 .align(Alignment.Center),
             factory = { ctx ->
-                SurfaceViewRenderer(ctx).apply {
-                    if (!isInitialized.value) {
-                        try {
-                            init(eglBase?.eglBaseContext, null)
-                            setEnableHardwareScaler(true)
-                            setMirror(webRtcData.isFrontLocalCamera)
-                            setScalingType(rtcScalingType)
-                            setBackgroundColor(Color.Transparent.toArgb())
-                            isInitialized.value = true
-                        } catch (e: Exception) {
-                            Log.e(
-                                "ParticipantCallingView",
-                                "Error initializing SurfaceViewRenderer : ${e.message}",
-                            )
+                TogeTextureViewRenderer(ctx).apply {
+                    try {
+                        eglBase?.let { egl ->
+                            init(egl.eglBaseContext, null)
                         }
+                        setMirror(webRtcData.isFrontLocalCamera)
+                        setScalingType(rtcScalingType)
+                        isInitialized.value = true
+                    } catch (e: Exception) {
+                        Log.e(
+                            "ParticipantCallingView",
+                            "Error initializing TogeTextureViewRenderer",
+                            e
+                        )
                     }
 
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
-                    ).apply {
-                        gravity = Gravity.CENTER
-                    }
+                    )
 
-                    surfaceViewRenderer.value = this
-                    webRtcData.videoTrack?.let { track ->
-                        try {
-                            track.addSink(this)
-                            currentVideoTrack.value = track
-                        } catch (e: Exception) {
-                            Log.e("ParticipantCallingView", "Error adding sink", e)
-                        }
-                    }
+                    textureViewRenderer.value = this // ✅ 변경된 상태 변수에 할당
+                    webRtcData.videoTrack?.addSink(this)
+                    currentVideoTrack.value = webRtcData.videoTrack
                 }
             },
             update = { view ->
                 view.setScalingType(rtcScalingType)
                 view.setMirror(webRtcData.isFrontLocalCamera)
-                if (surfaceViewRenderer.value != view) {
-                    surfaceViewRenderer.value = view
-                }
             }
         )
+
         if (!participant.isCameraOn) {
             Box(
                 modifier = Modifier
@@ -223,7 +228,7 @@ fun ParticipantCallingView(
 
             Text(
                 text = participant.name,
-                color =  LocalTogeAppColor.current.white,
+                color = LocalTogeAppColor.current.white,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
