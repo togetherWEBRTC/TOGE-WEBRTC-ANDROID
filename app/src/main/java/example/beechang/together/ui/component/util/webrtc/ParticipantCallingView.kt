@@ -166,7 +166,7 @@ fun ParticipantCallingView(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
 
-                    textureViewRenderer.value = this // ✅ 변경된 상태 변수에 할당
+                    textureViewRenderer.value = this
                     webRtcData.videoTrack?.addSink(this)
                     currentVideoTrack.value = webRtcData.videoTrack
                 }
