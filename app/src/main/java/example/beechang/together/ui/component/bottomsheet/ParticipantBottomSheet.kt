@@ -1,5 +1,6 @@
 package example.beechang.together.ui.component.bottomsheet
 
+
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.text.style.TextOverflow
@@ -11,11 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -23,13 +28,17 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import example.beechang.together.R
 import example.beechang.together.ui.call.room.RoomParticipantUi
 import example.beechang.together.ui.component.util.CircularImage
+import example.beechang.together.ui.component.util.ClickShrinkEffect
 import example.beechang.together.ui.theme.LocalTogeAppColor
 
 @Composable
@@ -39,6 +48,7 @@ fun ParticipantBottomSheet(
         skipPartiallyExpanded = true,
     ),
     isShow: Boolean = false,
+    roomCode: String = "",
     waitingParticipants: List<RoomParticipantUi> = listOf(),
     participants: List<RoomParticipantUi> = listOf(),
     /* EVENT */
@@ -47,6 +57,9 @@ fun ParticipantBottomSheet(
     onRejectWaiting: (String/*userId*/) -> Unit = {}
 ) {
     if (isShow) {
+
+        val clipboardManager = LocalClipboardManager.current
+
         ModalBottomSheet(
             onDismissRequest = onDismissRequest,
             modifier = modifier
@@ -57,6 +70,34 @@ fun ParticipantBottomSheet(
             LazyColumn(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
+
+                // 코드 복사
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.entered_room_number, roomCode),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        ClickShrinkEffect(
+                            onClick = { clipboardManager.setText(AnnotatedString(roomCode)) }
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_copy),
+                                contentDescription = "copy",
+                                tint = LocalContentColor.current,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
 
                 // 대기자
                 if (waitingParticipants.isNotEmpty()) {

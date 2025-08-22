@@ -2,7 +2,7 @@
     <string name="app_name">TogetherAndroid</string>
     <string name="together">Together</string>
 
-<!--    COMMON 일반-->
+    <!--    COMMON 일반-->
     <string name="ok">확인</string>
     <string name="cancel">취소</string>
     <string name="yes">예</string>
@@ -23,7 +23,7 @@
     <string name="notify">알림</string>
     <string name="connection_problem">연결에 문제가 발생했습니다.</string>
 
-<!--    LOGIN 로그인-->
+    <!--    LOGIN 로그인-->
     <string name="login">로그인</string>
     <string name="logout">로그아웃</string>
     <string name="signup">회원가입</string>
@@ -38,7 +38,7 @@
     <string name="signup_prompt">Together 가입하기</string>
     <string name="session_expired">세션이 만료되었습니다.</string>
 
-<!--    SIGN UP 회원가입-->
+    <!--    SIGN UP 회원가입-->
     <string name="id">아이디</string>
     <string name="password">비밀번호</string>
     <string name="input_id">아이디를 입력해주세요.</string>
@@ -54,12 +54,12 @@
     <string name="welcome">님\n환영합니다.</string>
     <string name="check_id">중복확인</string>
 
-<!--    HOME 홈-->
+    <!--    HOME 홈-->
     <string name="active_call">새 통화</string>
     <string name="input_code">코드를 입력해주세요</string>
     <string name="need_login">로그인 후 이용해주세요.</string>
 
-<!--    MY PAGE 마이페이지-->
+    <!--    MY PAGE 마이페이지-->
     <string name="my_page">마이페이지</string>
     <string name="my_profile">내 프로필</string>
     <string name="my_profile_edit">프로필 이미지 변경</string>
@@ -73,7 +73,7 @@
     <string name="password_description">더 강력한 보안을 위해 비밀번호를 업데이트하세요.</string>
 
 
-<!--    PERMISSIONS 권한-->
+    <!--    PERMISSIONS 권한-->
     <string name="permission_call_required">통화 필요 권한</string>
     <string name="permission_required">권한 필요</string>
     <string name="permission_description_title">원활한 통화를 위해 아래의 권한이 필요합니다.</string>
@@ -85,7 +85,7 @@
     <string name="all_permissions_granted">모든 권한이 허용되었습니다.</string>
     <string name="permission_settings_required">권한을 허용하기 위해서 설정화면으로 이동이 필요합니다.</string>
 
-<!--    CALLING 전화 통화-->
+    <!--    CALLING 전화 통화-->
     <string name="connection_failed">접속에 실패했습니다.</string>
     <string name="invalid_code">유효한 코드가 아닙니다.</string>
     <string name="failed_to_create_call">통화 생성에 실패했습니다.</string>
@@ -99,7 +99,7 @@
     <string name="together_call">Together 통화</string>
     <string name="tap_to_return_to_call_screen">탭하여 통화 화면으로 돌아가기</string>
 
-<!--    CALLING PARTICIPANTS 통화 참여자-->
+    <!--    CALLING PARTICIPANTS 통화 참여자-->
     <string name="participant_title">참여자</string>
     <string name="waiting_participant_title">대기자</string>
     <string name="hand_raised_participant_title">손을 든 참여자</string>
@@ -108,4 +108,5 @@
     <string name="action_lower_hand">내리기</string>
     <string name="label_me">나</string>
     <string name="label_host">호스트</string>
+    <string name="entered_room_number">참여한 방번호 : %s</string>
 </resources>
