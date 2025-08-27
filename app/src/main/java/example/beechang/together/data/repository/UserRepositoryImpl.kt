@@ -1,7 +1,6 @@
 package example.beechang.together.data.repository
 
 import android.util.Base64
-import android.util.Log
 import example.beechang.together.BuildConfig
 import example.beechang.together.data.http.api.UserDataSource
 import example.beechang.together.data.request.LoginRequest
@@ -52,7 +51,8 @@ class UserRepositoryImpl @Inject constructor(
                 val isSuccess = !it.accessToken.isNullOrBlank() && !it.refreshToken.isNullOrBlank()
                 SocialLoginResult(
                     isSuccess = isSuccess,
-                    isNeedAgreeTerms = it.isNeedAgreeTerms ?: false
+                    isNeedAdditionalInfo = it.isNeedAdditionalInfo ?: false,
+                    socialInfoToken = it.socialToken ?: ""
                 )
             }
     }
