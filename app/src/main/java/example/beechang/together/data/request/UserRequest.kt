@@ -10,6 +10,12 @@ data class LoginRequest(
 )
 
 @Serializable
+data class SocialLoginRequest(
+    @SerialName("token") val token: String,
+    @SerialName("type") val type: String
+)
+
+@Serializable
 data class SignupRequest(
     @SerialName("userId") val userId: String,
     @SerialName("nickname") val nickname: String,

@@ -2,6 +2,7 @@ package example.beechang.together.data.http.api
 
 import example.beechang.together.data.request.LoginRequest
 import example.beechang.together.data.request.SignupRequest
+import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.LoginResponse
 import example.beechang.together.data.response.RefreshingAccessTokenResponse
@@ -18,6 +19,11 @@ interface UserApi {
     @POST("api/auth/login")
     suspend fun login(
         @Body request: LoginRequest
+    ): Response<LoginResponse>
+
+    @POST("api/auth/social-login")
+    suspend fun socialLogin(
+        @Body request: SocialLoginRequest
     ): Response<LoginResponse>
 
     @POST("api/auth/signup")

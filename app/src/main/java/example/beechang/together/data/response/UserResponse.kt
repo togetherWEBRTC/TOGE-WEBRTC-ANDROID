@@ -9,7 +9,10 @@ data class LoginResponse(
     @SerialName("code") override val code: Int,
     @SerialName("message") override val message: String,
     @SerialName("accessToken") val accessToken: String? = null,
-    @SerialName("refreshToken") val refreshToken: String? = null
+    @SerialName("refreshToken") val refreshToken: String? = null,
+    @SerialName("isNeedAgreeTerms") val isNeedAgreeTerms: Boolean? = null,
+    @SerialName("socialToken") val socialToken: String? = null,
+    @SerialName("socialType") val socialType: String? = null
 ) : TogeResponse
 
 @Serializable
