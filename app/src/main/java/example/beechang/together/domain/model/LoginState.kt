@@ -16,3 +16,12 @@ enum class LoginState {
         }
     }
 }
+
+enum class SocialLoginType {
+    GOOGLE
+}
+
+data class SocialLoginResult(
+    val isSuccess: Boolean,
+    val isNeedAgreeTerms : Boolean
+)
