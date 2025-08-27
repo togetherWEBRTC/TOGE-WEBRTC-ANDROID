@@ -55,20 +55,22 @@ android {
         debug {
             isDebuggable = true
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "TOGE_WRTC_DEV")
+            resValue("string", "app_name", "TOGE_DEV")
             buildConfigField("String", "LOCAL_PREF", "\"toge_pref\"")
             buildConfigField("String", "API_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "RES_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "WEBSOCKET_URL", "\"${getLocalProperties("LOCAL_WEBSOCK_URL")}\"")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${getLocalProperties("GOOGLE_CLIENT_ID")}\"")
         }
 
         release {
-            resValue("string", "app_name", "TOGE_WRTC")
+            resValue("string", "app_name", "TOGE")
             isMinifyEnabled = false
             buildConfigField("String", "LOCAL_PREF", "\"toge_pref\"")
             buildConfigField("String", "API_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "RES_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "WEBSOCKET_URL", "\"${getLocalProperties("LOCAL_WEBSOCK_URL")}\"")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${getLocalProperties("GOOGLE_CLIENT_ID")}\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -156,6 +158,10 @@ dependencies {
 
     //  WebRTC
     implementation(files("$rootDir/${libs.versions.webrtcJarPath.get()}"))
+
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     //  Test
     testImplementation(libs.junit.jupiter.api)
