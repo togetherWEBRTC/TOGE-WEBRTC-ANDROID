@@ -26,6 +26,10 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
         1003 -> TogeError.FailedLogin
         1004 -> TogeError.DuplicatedId
         1005 -> TogeError.PasswordNotMatch
+        1006 -> TogeError.UserNotFoundOrDeleted
+        1007 -> TogeError.FailSocialLoginInvalidInfo
+        1008 -> TogeError.FailSocialLogin
+        1009 -> TogeError.InvalidSocialSignupToken
 
         10001 -> TogeError.AlreadyJoinedRoom
         10002 -> TogeError.RoomNotFound
