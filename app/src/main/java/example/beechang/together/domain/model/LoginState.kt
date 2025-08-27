@@ -23,5 +23,6 @@ enum class SocialLoginType {
 
 data class SocialLoginResult(
     val isSuccess: Boolean,
-    val isNeedAgreeTerms : Boolean
+    val isNeedAdditionalInfo : Boolean,
+    val socialInfoToken : String
 )
