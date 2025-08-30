@@ -59,6 +59,9 @@
     <string name="agreement_prefix_required">[필수]</string>
     <string name="agreement_privacy_policy_title">개인정보 수집 및 이용동의</string>
     <string name="agreement_terms_of_service_title">이용약관 동의</string>
+    <string name="error_login_failed">로그인에 문제가 발생했습니다.</string>
+    <string name="need_to_agree_terms">필수 약관 동의가 반드시 필요합니다.</string>
+    <string name="error_signup_failed">회원가입 정보에 문제가 발생했습니다.\n다시 시도해주세요.</string>
 
     <!--    HOME 홈-->
     <string name="active_call">새 통화</string>
