@@ -30,6 +30,8 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
         1007 -> TogeError.FailSocialLoginInvalidInfo
         1008 -> TogeError.FailSocialLogin
         1009 -> TogeError.InvalidSocialSignupToken
+        1011 -> TogeError.NeedToAgreeTerms
+        1012 -> TogeError.FailWithdrawMember
 
         10001 -> TogeError.AlreadyJoinedRoom
         10002 -> TogeError.RoomNotFound
@@ -73,7 +75,7 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
  * @return TogeResult<T> API 호출 결과를 래핑한 객체
  */
 suspend fun <T : TogeResponse> apiToResult(
-    call: suspend () -> Response<T>
+    call: suspend () -> Response<T>,
 ): TogeResult<T> = try {
     val response = call()
 
@@ -133,7 +135,7 @@ suspend fun <T : TogeResponse> apiToResult(
  */
 fun <T : TogeResponse, R> TogeResult<T>.mapSuccessOrProvideError(
     errorType: TogeError,
-    transform: (T) -> R
+    transform: (T) -> R,
 ): TogeResult<R> {
     return when (this) {
         is TogeResult.Success -> {
@@ -152,7 +154,7 @@ fun <T : TogeResponse, R> TogeResult<T>.mapSuccessOrProvideError(
 
 
 suspend fun <T : TogeResponse> togeToResult(
-    result: suspend () -> TogeResult<T>
+    result: suspend () -> TogeResult<T>,
 ): TogeResult<T> = try {
     val response = result()
     when (response) {
@@ -191,7 +193,7 @@ val json = Json {
 fun <T : Any> socketEventToResultFlow(
     webSocketClient: WebSocketClient,
     eventName: String,
-    resType: KSerializer<T>
+    resType: KSerializer<T>,
 ): Flow<TogeResult<T>> {
     return webSocketClient.eventFlow
         .filter { it.event == eventName }
