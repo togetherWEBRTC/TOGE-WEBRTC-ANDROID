@@ -20,7 +20,8 @@ sealed interface TogeError {
     object FailSocialLoginInvalidInfo : TogeError
     object FailSocialLogin : TogeError
     object InvalidSocialSignupToken : TogeError
-
+    object NeedToAgreeTerms : TogeError
+    object FailWithdrawMember : TogeError
 
     object UnknownErrorFailedToCalling : TogeError
     object FailedToCreateRoom : TogeError
