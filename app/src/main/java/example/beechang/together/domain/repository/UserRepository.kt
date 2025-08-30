@@ -9,13 +9,24 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
     suspend fun requestLogin(userId: String, password: String): TogeResult<Boolean>
-    suspend fun requestSocialLogin(token: String, type: SocialLoginType): TogeResult<SocialLoginResult>
+    suspend fun requestSocialLogin(
+        token: String,
+        type: SocialLoginType,
+    ): TogeResult<SocialLoginResult>
+
     suspend fun checkUsableId(userId: String): TogeResult<Boolean>
     suspend fun requestSignUp(
         userId: String,
         nickname: String,
         password: String,
-        passwordConfirm: String
+        passwordConfirm: String,
+    ): TogeResult<Boolean>
+
+    suspend fun requestSocialSignUp(
+        token: String,
+        nickname: String,
+        isAgreedTerms: Boolean,
+        isAgreedPrivacy: Boolean,
     ): TogeResult<Boolean>
 
     suspend fun modifyProfileImage(): TogeResult<Boolean>
@@ -25,6 +36,7 @@ interface UserRepository {
     suspend fun getUserInfoFlow(): Flow<TogeResult<UserInfo>>
     suspend fun logout(): TogeResult<Boolean>
     suspend fun withdraw(): TogeResult<Boolean>
+    suspend fun socialWithdraw(): TogeResult<Boolean>
     suspend fun getLoginStateFlow(): Flow<TogeResult<LoginState>>
     suspend fun updateAccessToken(): TogeResult<Boolean>
 }
