@@ -6,6 +6,7 @@ import example.beechang.together.data.http.api.UserDataSource
 import example.beechang.together.data.request.LoginRequest
 import example.beechang.together.data.request.SignupRequest
 import example.beechang.together.data.request.SocialLoginRequest
+import example.beechang.together.data.request.SocialSignUpRequest
 import example.beechang.together.data.response.LoginResponse
 import example.beechang.together.domain.data.LocalPreference
 import example.beechang.together.domain.data.TogeError.InvalidAccessToken
@@ -27,7 +28,7 @@ import javax.inject.Singleton
 @Singleton
 class UserRepositoryImpl @Inject constructor(
     private val userDataSource: UserDataSource,
-    private val localPreference: LocalPreference
+    private val localPreference: LocalPreference,
 ) : UserRepository {
 
     override suspend fun requestLogin(userId: String, password: String): TogeResult<Boolean> {
@@ -40,7 +41,7 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun requestSocialLogin(
         token: String,
-        type: SocialLoginType
+        type: SocialLoginType,
     ): TogeResult<SocialLoginResult> {
         return userDataSource.requestSocialLogin(SocialLoginRequest(token, type.name))
             .onSuccess {
@@ -64,11 +65,33 @@ class UserRepositoryImpl @Inject constructor(
         userId: String,
         nickname: String,
         password: String,
-        passwordConfirm: String
+        passwordConfirm: String,
     ): TogeResult<Boolean> =
         userDataSource.requestSignUp(
             signUpRequest = SignupRequest(userId, nickname, password, passwordConfirm)
         )
+
+    override suspend fun requestSocialSignUp(
+        token: String,
+        nickname: String,
+        isAgreedTerms: Boolean,
+        isAgreedPrivacy: Boolean,
+    ): TogeResult<Boolean> {
+        return userDataSource.requestSocialSignUp(
+            socialSignUpRequest = SocialSignUpRequest(
+                token = token,
+                nickname = nickname,
+                isAgreedTerms = isAgreedTerms,
+                isAgreedPrivacy = isAgreedPrivacy
+            )
+        ).onSuccess {
+            if (!it.accessToken.isNullOrBlank() && !it.refreshToken.isNullOrBlank()) {
+                saveAuthData(it)
+            }
+        }.map {
+            it.toSuccessBoolean()
+        }
+    }
 
     override fun getLocalAccessTokenFlow(): Flow<TogeResult<String>> =
         localPreference.accessTokenFlow.map {
@@ -132,6 +155,15 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun withdraw(): TogeResult<Boolean> {
         return userDataSource.withdraw().onSuccess {
+            localPreference.run {
+                loginState = LoginState.Logout.name
+                clear()
+            }
+        }.map { it.toSuccessBoolean() }
+    }
+
+    override suspend fun socialWithdraw(): TogeResult<Boolean> {
+        return userDataSource.socialWithdraw().onSuccess {
             localPreference.run {
                 loginState = LoginState.Logout.name
                 clear()
