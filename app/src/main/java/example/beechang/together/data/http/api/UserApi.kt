@@ -3,6 +3,7 @@ package example.beechang.together.data.http.api
 import example.beechang.together.data.request.LoginRequest
 import example.beechang.together.data.request.SignupRequest
 import example.beechang.together.data.request.SocialLoginRequest
+import example.beechang.together.data.request.SocialSignUpRequest
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.LoginResponse
 import example.beechang.together.data.response.RefreshingAccessTokenResponse
@@ -31,6 +32,11 @@ interface UserApi {
         @Body request: SignupRequest
     ): Response<BaseResponse>
 
+    @POST("api/auth/social-signup")
+    suspend fun socialSignUp(
+        @Body request: SocialSignUpRequest
+    ): Response<LoginResponse>
+
     @POST("api/auth/refresh/token")
     suspend fun refreshingAccessToken(): Response<RefreshingAccessTokenResponse>
 
@@ -47,4 +53,7 @@ interface UserApi {
 
     @DELETE("api/auth/withdraw")
     suspend fun withdraw(): Response<BaseResponse>
+
+    @DELETE("api/auth/social-withdraw")
+    suspend fun socialWithdraw(): Response<BaseResponse>
 }

@@ -16,6 +16,14 @@ data class SocialLoginRequest(
 )
 
 @Serializable
+data class SocialSignUpRequest(
+    @SerialName("token") val token: String,
+    @SerialName("nickname") val nickname: String,
+    @SerialName("isAgreedTerms") val isAgreedTerms: Boolean,
+    @SerialName("isAgreedPrivacy") val isAgreedPrivacy: Boolean
+)
+
+@Serializable
 data class SignupRequest(
     @SerialName("userId") val userId: String,
     @SerialName("nickname") val nickname: String,
