@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 
@@ -30,26 +31,27 @@ fun TogeBaseTopBar(
     rightContent: @Composable () -> Unit = {},
     backgroundColor: Color = MaterialTheme.colorScheme.background,
     arrangement: Arrangement.Horizontal = Arrangement.SpaceAround,
-    weightTriple: Triple<Float, Float, Float> = Triple(1f/*left*/, 1f/*center title*/, 1f/*right*/)
+    weightTriple: Triple<Float, Float, Float> = Triple(1f/*left*/, 1f/*center title*/, 1f/*right*/),
+    horizontalPadding: Dp = 16.dp,
 ) {
     Column(
         modifier = modifier
-           .fillMaxWidth()
-           .background(backgroundColor)
+            .fillMaxWidth()
+            .background(backgroundColor)
     ) {
         Spacer( // Status bar space for edge-to-edge design
             modifier = Modifier
-               .windowInsetsPadding(
-                  windowInsets.only(WindowInsetsSides.Top)
-               )
-               .fillMaxWidth()
+                .windowInsetsPadding(
+                    windowInsets.only(WindowInsetsSides.Top)
+                )
+                .fillMaxWidth()
         )
 
         Row(
             modifier = Modifier
-               .fillMaxWidth()
-               .height(TopAppBarDefaults.MediumAppBarCollapsedHeight)
-               .padding(horizontal = 16.dp),
+                .fillMaxWidth()
+                .height(TopAppBarDefaults.MediumAppBarCollapsedHeight)
+                .padding(horizontal = horizontalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = arrangement
         ) {
