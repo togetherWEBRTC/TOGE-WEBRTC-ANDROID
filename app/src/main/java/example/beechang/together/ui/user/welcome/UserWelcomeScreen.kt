@@ -42,7 +42,7 @@ fun WelcomeRouter(
         modifier = modifier,
         nickname = nickname,
         onClickMoveToLogin = {
-            UserNavDestination.navigateToLoginFromWelcome(navController = navController)
+            UserNavDestination.navigateToPreLogin(navController = navController)
         },
     )
 }
@@ -87,7 +87,7 @@ fun WelcomeScreen(
 
             TogeConfirmButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = stringResource(id = R.string.go_login),
+                text = stringResource(id = R.string.ok),
                 onClick = onClickMoveToLogin,
             )
         }

@@ -1,15 +1,18 @@
 package example.beechang.together.ui.user.login
 
-import androidx.compose.foundation.clickable
+import android.util.Log
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -27,9 +30,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,14 +37,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil3.compose.AsyncImage
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
-import example.beechang.together.ui.component.button.TogeConfirmButton
+import example.beechang.together.domain.model.SocialLoginType
 import example.beechang.together.ui.component.scaffold.TogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
-import example.beechang.together.ui.component.text.TogeOutLineTextField
 import example.beechang.together.ui.component.topbar.TogeCloseTopBar
+import example.beechang.together.ui.component.util.ClickShrinkEffect
 import example.beechang.together.ui.user.UserNavDestination
+import example.beechang.together.ui.utils.rememberGoogleSignInManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -60,10 +62,32 @@ fun UserLoginRouter(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    val googleSignInManager = rememberGoogleSignInManager(
+        onSuccess = { idToken ->
+            userLoginViewModel.onEvent(UserLoginEvent.SocialLogin(idToken, SocialLoginType.GOOGLE))
+            Log.e("UserLoginRouter", "Google Sign-In Success: $idToken")
+        },
+        onError = { exception ->
+            //todo 나중에 로그 수집시 추가
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.error_social_login_failed),
+                    duration = SnackbarDuration.Short
+                )
+            }
+        }
+    )
+
     LaunchedEffect(userLoginViewModel) {
         userLoginViewModel.sideEffect.collect {
-            if (it is UserLoginEffect.LoginSuccess) {
-                navController.navigateUp()
+            when (it) {
+                UserLoginEffect.LoginSuccess -> {
+                    navController.navigateUp()
+                }
+
+                is UserLoginEffect.SocialLoginNeedAdditionalInfo -> {
+                    UserNavDestination.navigateToSocialSignup(navController, it.token)
+                }
             }
         }
     }
@@ -77,9 +101,15 @@ fun UserLoginRouter(
                         duration = SnackbarDuration.Short
                     )
                 }
-            } else if (it is TogeError.NetworkError) {
+            } else if (it is TogeError.NetworkError || it is TogeError.DataError) {
                 snackbarHostState.showSnackbar(
                     message = context.getString(R.string.connection_problem),
+                    duration = SnackbarDuration.Short
+                )
+            } else if (it is TogeError.FailSocialLoginInvalidInfo) {
+                //todo 나중에 로그 수집시 추가 (서버에서 소셜로그인 실패시 발생하는 에러)
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.error_login_failed),
                     duration = SnackbarDuration.Short
                 )
             }
@@ -102,6 +132,9 @@ fun UserLoginRouter(
         onEventLogin = {
             userLoginViewModel.onEvent(UserLoginEvent.Login(state.inputUserId, state.inputPassword))
         },
+        onEventGoogleLogin = {
+            googleSignInManager.signIn()
+        },
         /* NAVIGATION */
         onCloseScreen = { navController.navigateUp() },
         onMoveToSignUp = { navController.navigate(UserNavDestination.SIGNUP) }
@@ -118,9 +151,10 @@ fun UserLoginScreen(
     onEventUserIdChanged: (String) -> Unit = {},
     onEventPasswordChanged: (String) -> Unit = {},
     onEventLogin: () -> Unit = {},
+    onEventGoogleLogin: () -> Unit = {},
     /* NAVIGATION */
     onCloseScreen: () -> Unit = {},
-    onMoveToSignUp: () -> Unit = {}
+    onMoveToSignUp: () -> Unit = {},
 ) {
     val localFocusManager = LocalFocusManager.current
 
@@ -144,77 +178,108 @@ fun UserLoginScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            AsyncImage(
+                model = R.mipmap.logo,
+                contentDescription = "App Logo",
+                modifier = Modifier.size(80.dp)
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = stringResource(id = R.string.together),
+                text = stringResource(id = R.string.login),
                 style = MaterialTheme.typography.headlineMedium
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
-            TogeOutLineTextField(
-                value = state.inputUserId,
-                onValueChange = { onEventUserIdChanged(it) },
-                labelText = stringResource(R.string.id),
-                placeholderText = stringResource(R.string.input_id),
-                singleLine = true,
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next,
-                onImeAction = {},
-                focusManager = localFocusManager,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            TogeOutLineTextField(
-                value = state.inputPassword,
-                onValueChange = { onEventPasswordChanged(it) },
-                labelText = stringResource(R.string.password),
-                placeholderText = stringResource(R.string.input_password),
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-                singleLine = true,
-                isPassword = true,
-                onImeAction = {
-                    localFocusManager.clearFocus()
-                    onEventLogin()
-                },
-                focusManager = localFocusManager,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-            TogeConfirmButton(
-                text = stringResource(R.string.login),
-                onClick = onEventLogin,
-                enabled = state.isLoginButtonEnabled,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = stringResource(R.string.restart_prompt),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(
-                    text = " ",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Text(
-                    text = stringResource(R.string.signup_prompt),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        textDecoration = TextDecoration.Underline
-                    ),
-                    modifier = Modifier
-                        .clickable {
-                            onMoveToSignUp()
-                        },
-                )
+                ClickShrinkEffect(
+                    onClick = { onEventGoogleLogin() },
+                    shrinkFactor = 0.95f
+                ) {
+                    Box(
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = R.drawable.google_login_ctn,
+                            contentDescription = "Continue with Google",
+                            modifier = Modifier.height(40.dp)
+                        )
+                    }
+                }
             }
+
+//            FIXME: 기존 로그인 미사용 일단 주석
+//            Spacer(modifier = Modifier.height(32.dp))
+//            TogeOutLineTextField(
+//                value = state.inputUserId,
+//                onValueChange = { onEventUserIdChanged(it) },
+//                labelText = stringResource(R.string.id),
+//                placeholderText = stringResource(R.string.input_id),
+//                singleLine = true,
+//                keyboardType = KeyboardType.Text,
+//                imeAction = ImeAction.Next,
+//                onImeAction = {},
+//                focusManager = localFocusManager,
+//                modifier = Modifier.fillMaxWidth()
+//            )
+//
+//            Spacer(modifier = Modifier.height(8.dp))
+//            TogeOutLineTextField(
+//                value = state.inputPassword,
+//                onValueChange = { onEventPasswordChanged(it) },
+//                labelText = stringResource(R.string.password),
+//                placeholderText = stringResource(R.string.input_password),
+//                keyboardType = KeyboardType.Password,
+//                imeAction = ImeAction.Done,
+//                singleLine = true,
+//                isPassword = true,
+//                onImeAction = {
+//                    localFocusManager.clearFocus()
+//                    onEventLogin()
+//                },
+//                focusManager = localFocusManager,
+//                modifier = Modifier.fillMaxWidth()
+//            )
+//
+//            Spacer(modifier = Modifier.height(32.dp))
+//            TogeConfirmButton(
+//                text = stringResource(R.string.login),
+//                onClick = onEventLogin,
+//                enabled = state.isLoginButtonEnabled,
+//                modifier = Modifier.fillMaxWidth()
+//            )
+//
+//            Spacer(modifier = Modifier.height(24.dp))
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.Center,
+//                verticalAlignment = Alignment.CenterVertically
+//            ) {
+//                Text(
+//                    text = stringResource(R.string.restart_prompt),
+//                    style = MaterialTheme.typography.bodySmall,
+//                )
+//                Text(
+//                    text = " ",
+//                    style = MaterialTheme.typography.bodyMedium,
+//                )
+//                Text(
+//                    text = stringResource(R.string.signup_prompt),
+//                    style = MaterialTheme.typography.bodyMedium.copy(
+//                        textDecoration = TextDecoration.Underline
+//                    ),
+//                    modifier = Modifier
+//                        .clickable {
+//                            onMoveToSignUp()
+//                        },
+//                )
+//            }
         }
     }
 }

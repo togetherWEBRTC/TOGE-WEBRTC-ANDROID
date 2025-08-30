@@ -8,6 +8,7 @@ import example.beechang.together.domain.usecase.user.GetLoginStateUseCase
 import example.beechang.together.domain.usecase.user.GetNewProfileImageUseCase
 import example.beechang.together.domain.usecase.user.GetUserInfoUseCase
 import example.beechang.together.domain.usecase.user.RequestLogoutUseCase
+import example.beechang.together.domain.usecase.user.RequestSocialWithdrawUseCase
 import example.beechang.together.domain.usecase.user.RequestWithdrawUseCase
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
@@ -24,6 +25,7 @@ class UserMyPageViewModel @Inject constructor(
     private val getUserInfoUseCase: GetUserInfoUseCase,
     private val requestLogoutUseCase: RequestLogoutUseCase,
     private val requestWithdrawUseCase: RequestWithdrawUseCase,
+    private val requestSocialWithdrawUseCase: RequestSocialWithdrawUseCase,
     private val getLoginStateUseCase: GetLoginStateUseCase,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<UserMyPageState, UserMyPageEvent, UserMyPageEffect>(
@@ -40,7 +42,7 @@ class UserMyPageViewModel @Inject constructor(
             }
 
             UserMyPageEvent.OnWithdraw -> {
-                withdraw()
+                socialWithdraw()
             }
         }
     }
@@ -99,6 +101,14 @@ class UserMyPageViewModel @Inject constructor(
     private fun withdraw() =
         handleEvent(
             action = { requestWithdrawUseCase.invoke() },
+            onStart = { updateState { copy(isLoading = true) } },
+            onSuccess = { sendEffect(UserMyPageEffect.SuccessWithdraw) },
+            onFinally = { updateState { copy(isLoading = false) } },
+        )
+
+    private fun socialWithdraw() =
+        handleEvent(
+            action = { requestSocialWithdrawUseCase.invoke() },
             onStart = { updateState { copy(isLoading = true) } },
             onSuccess = { sendEffect(UserMyPageEffect.SuccessWithdraw) },
             onFinally = { updateState { copy(isLoading = false) } },

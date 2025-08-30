@@ -102,6 +102,13 @@ fun UserMyPageRouter(
                     message = context.getString(R.string.connection_problem),
                     duration = SnackbarDuration.Short
                 )
+            } else if(error is TogeError.UserNotFoundOrDeleted){
+                isShowWithdrawSuccessDialog = true
+            } else if(error is TogeError.FailWithdrawMember){
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.connection_problem),
+                    duration = SnackbarDuration.Short
+                )
             }
         }
     }
