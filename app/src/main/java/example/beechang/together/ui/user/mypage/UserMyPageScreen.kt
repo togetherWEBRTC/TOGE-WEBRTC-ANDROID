@@ -1,5 +1,6 @@
 package example.beechang.together.ui.user.mypage
 
+import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -35,11 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -53,12 +60,15 @@ import example.beechang.together.ui.component.dialog.TogeDialog
 import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
 import example.beechang.together.ui.component.scaffold.TogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
-import example.beechang.together.ui.component.topbar.TogeSimpleBackTopBar
+import example.beechang.together.ui.component.topbar.TogeBaseTopBar
+import example.beechang.together.ui.component.util.CircleRippleEffectForIcon
 import example.beechang.together.ui.component.util.CircularImage
 import example.beechang.together.ui.component.util.ClickShrinkEffect
 import example.beechang.together.ui.home.HomeNavDestination
 import example.beechang.together.ui.theme.LocalTogeAppColor
 import example.beechang.together.ui.user.UserNavDestination
+import example.beechang.together.ui.utils.RemoteConfigKey
+import example.beechang.together.ui.utils.RemoteConfigManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -77,6 +87,9 @@ fun UserMyPageRouter(
     var isShowDoubleCheckModifyProfileDialog by remember { mutableStateOf(false) }
     var isShowWithdrawDialog by remember { mutableStateOf(false) }
     var isShowWithdrawSuccessDialog by remember { mutableStateOf(false) }
+
+    /* Menu */
+    var isExpandedMoreMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.sideEffect.collect {
@@ -102,9 +115,9 @@ fun UserMyPageRouter(
                     message = context.getString(R.string.connection_problem),
                     duration = SnackbarDuration.Short
                 )
-            } else if(error is TogeError.UserNotFoundOrDeleted){
+            } else if (error is TogeError.UserNotFoundOrDeleted) {
                 isShowWithdrawSuccessDialog = true
-            } else if(error is TogeError.FailWithdrawMember){
+            } else if (error is TogeError.FailWithdrawMember) {
                 snackbarHostState.showSnackbar(
                     message = context.getString(R.string.connection_problem),
                     duration = SnackbarDuration.Short
@@ -141,6 +154,7 @@ fun UserMyPageRouter(
         isShowDoubleCheckModifyProfileDialog = isShowDoubleCheckModifyProfileDialog,
         isShowWithdrawDialog = isShowWithdrawDialog,
         isShowWithdrawSuccessDialog = isShowWithdrawSuccessDialog,
+        isExpandedMoreMenu = isExpandedMoreMenu,
         /* EVENT */
         onEventShowModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = true },
         onEventModifyProfileImage = {
@@ -157,6 +171,23 @@ fun UserMyPageRouter(
         onEventConfirmWithdrawSuccess = {
             isShowWithdrawSuccessDialog = false
             HomeNavDestination.navigateToHome(navController)
+        },
+        onEventSwitchMoreMenu = {
+            isExpandedMoreMenu = !isExpandedMoreMenu
+        },
+        onEventPrivacyPolicy = {
+            val url = RemoteConfigManager.getValue(RemoteConfigKey.PRIVACY_POLICY)
+            if (!url.isNullOrBlank()) {
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                context.startActivity(intent)
+            }
+        },
+        onEventTermsOfService = {
+            val url = RemoteConfigManager.getValue(RemoteConfigKey.TERMS_OF_SERVICE)
+            if (!url.isNullOrBlank()) {
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                context.startActivity(intent)
+            }
         },
         onEventLogout = { userPageViewModel.onEvent(UserMyPageEvent.OnLogout) },
         onClickIsPreparing = {
@@ -182,6 +213,7 @@ fun UserMyPageScreen(
     isShowDoubleCheckModifyProfileDialog: Boolean = false,
     isShowWithdrawDialog: Boolean = false,
     isShowWithdrawSuccessDialog: Boolean = false,
+    isExpandedMoreMenu: Boolean = false,
     /* EVENT */
     onEventShowModifyProfileDialog: () -> Unit = {},
     onEventModifyProfileImage: () -> Unit = {},
@@ -190,10 +222,13 @@ fun UserMyPageScreen(
     onEventWithdraw: () -> Unit = {},
     onEventDismissWithdrawDialog: () -> Unit = {},
     onEventConfirmWithdrawSuccess: () -> Unit = {},
+    onEventSwitchMoreMenu: () -> Unit = {},
+    onEventPrivacyPolicy: () -> Unit = {},
+    onEventTermsOfService: () -> Unit = {},
     onEventLogout: () -> Unit = {},
     onClickIsPreparing: () -> Unit = {},
     /* NAVIGATION */
-    onClickBack: () -> Unit = {}
+    onClickBack: () -> Unit = {},
 ) {
 
     val scrollState = rememberScrollState()
@@ -230,7 +265,71 @@ fun UserMyPageScreen(
 
     TogeScaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { TogeSimpleBackTopBar(onClickBack = onClickBack) },
+        topBar = {
+            TogeBaseTopBar(
+                horizontalPadding = 8.dp,
+                leftContent = {
+                    CircleRippleEffectForIcon(
+                        buttonSize = 36,
+                        onClick = onClickBack
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_back),
+                            modifier = Modifier.size(24.dp),
+                            contentDescription = "back"
+                        )
+                    }
+                },
+                rightContent = {
+                    Box {
+                        CircleRippleEffectForIcon(
+                            buttonSize = 36,
+                            onClick = { onEventSwitchMoreMenu() }
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_more),
+                                modifier = Modifier.size(24.dp),
+                                contentDescription = "more"
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = isExpandedMoreMenu,
+                        onDismissRequest = { onEventSwitchMoreMenu() }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.privacy_policy),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            onClick = {
+                                onEventSwitchMoreMenu()
+                                onEventPrivacyPolicy()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.terms_of_service),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            onClick = {
+                                onEventSwitchMoreMenu()
+                                onEventTermsOfService()
+                            }
+                        )
+                    }
+                }
+            )
+        },
         snackbarHost = { TogeSnackbarHost(hostState = snackbarHostState) },
         isLoading = state.isLoading,
     ) {
@@ -243,7 +342,6 @@ fun UserMyPageScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(32.dp))
-
 
                 // Profile Image
                 ConstraintLayout(

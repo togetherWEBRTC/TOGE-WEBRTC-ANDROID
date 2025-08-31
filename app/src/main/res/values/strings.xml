@@ -22,6 +22,8 @@
     <string name="reject">거절</string>
     <string name="notify">알림</string>
     <string name="connection_problem">연결에 문제가 발생했습니다.</string>
+    <string name="privacy_policy">개인정보처리방침</string>
+    <string name="terms_of_service">이용약관</string>
 
     <!--    LOGIN 로그인-->
     <string name="login">로그인</string>
