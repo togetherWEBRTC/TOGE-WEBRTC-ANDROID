@@ -82,14 +82,7 @@ fun UserSocialSignUpRouter(
     val state by socialSignUpViewModel.uiState.collectAsStateWithLifecycle()
     var isShowErrorDialog by remember { mutableStateOf(false) }
 
-    val remoteConfig = remember {
-        RemoteConfigManager(
-            listOf(
-                RemoteConfigKey.PRIVACY_POLICY.keyName,
-                RemoteConfigKey.TERMS_OF_SERVICE.keyName
-            )
-        ).apply { init() }
-    }
+    val remoteConfig = RemoteConfigManager
 
     LaunchedEffect(Unit) {
         socialSignUpViewModel.errorEffect.collect { error ->
@@ -168,14 +161,14 @@ fun UserSocialSignUpRouter(
         /* NAVIGATION */
         onClickBack = { navController.navigateUp() },
         onClickPrivacyPolicy = {
-            val url = remoteConfig.getValue(RemoteConfigKey.PRIVACY_POLICY.keyName)
+            val url = remoteConfig.getValue(RemoteConfigKey.PRIVACY_POLICY)
             if (!url.isNullOrBlank()) {
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                 context.startActivity(intent)
             }
         },
         onClickTermsOfService = {
-            val url = remoteConfig.getValue(RemoteConfigKey.TERMS_OF_SERVICE.keyName)
+            val url = remoteConfig.getValue(RemoteConfigKey.TERMS_OF_SERVICE)
             if (!url.isNullOrBlank()) {
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
                 context.startActivity(intent)
