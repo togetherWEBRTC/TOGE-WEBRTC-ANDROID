@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">TogetherAndroid</string>
-    <string name="together">Together</string>
+    <string name="together">TOGE</string>
 
     <!--    COMMON 일반-->
     <string name="ok">확인</string>
@@ -22,6 +22,10 @@
     <string name="reject">거절</string>
     <string name="notify">알림</string>
     <string name="connection_problem">연결에 문제가 발생했습니다.</string>
+    <string name="privacy_policy">개인정보처리방침</string>
+    <string name="terms_of_service">이용약관</string>
+    <string name="occur_error_please_retry">문제가 발생했습니다. 잠시후 다시 시도해주세요.</string>
+    <string name="action_change">변경하기</string>
 
     <!--    LOGIN 로그인-->
     <string name="login">로그인</string>
@@ -37,6 +41,7 @@
     <string name="restart_prompt">새로 시작하시겠어요?</string>
     <string name="signup_prompt">Together 가입하기</string>
     <string name="session_expired">세션이 만료되었습니다.</string>
+    <string name="error_social_login_failed">소셜 로그인에 실패했습니다.</string>
 
     <!--    SIGN UP 회원가입-->
     <string name="id">아이디</string>
@@ -53,6 +58,14 @@
     <string name="go_login">로그인으로 가기</string>
     <string name="welcome">님\n환영합니다.</string>
     <string name="check_id">중복확인</string>
+    <string name="agreement_section_title">약관 동의</string>
+    <string name="agreement_all">전체 동의</string>
+    <string name="agreement_prefix_required">[필수]</string>
+    <string name="agreement_privacy_policy_title">개인정보 수집 및 이용동의</string>
+    <string name="agreement_terms_of_service_title">이용약관 동의</string>
+    <string name="error_login_failed">로그인에 문제가 발생했습니다.</string>
+    <string name="need_to_agree_terms">필수 약관 동의가 반드시 필요합니다.</string>
+    <string name="error_signup_failed">회원가입 정보에 문제가 발생했습니다.\n다시 시도해주세요.</string>
 
     <!--    HOME 홈-->
     <string name="active_call">새 통화</string>
@@ -71,7 +84,7 @@
     <string name="welcome_user_nickname">%1$s님, 어서오세요!</string>
     <string name="changing_profile">변경하기</string>
     <string name="password_description">더 강력한 보안을 위해 비밀번호를 업데이트하세요.</string>
-
+    <string name="nickname_change_confirmation">닉네임을 변경하시겠어요?</string>
 
     <!--    PERMISSIONS 권한-->
     <string name="permission_call_required">통화 필요 권한</string>

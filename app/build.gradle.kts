@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.junit5)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -55,20 +56,22 @@ android {
         debug {
             isDebuggable = true
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "TOGE_WRTC_DEV")
+            resValue("string", "app_name", "TOGE_DEV")
             buildConfigField("String", "LOCAL_PREF", "\"toge_pref\"")
             buildConfigField("String", "API_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "RES_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "WEBSOCKET_URL", "\"${getLocalProperties("LOCAL_WEBSOCK_URL")}\"")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${getLocalProperties("GOOGLE_CLIENT_ID")}\"")
         }
 
         release {
-            resValue("string", "app_name", "TOGE_WRTC")
+            resValue("string", "app_name", "TOGE")
             isMinifyEnabled = false
             buildConfigField("String", "LOCAL_PREF", "\"toge_pref\"")
             buildConfigField("String", "API_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "RES_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "WEBSOCKET_URL", "\"${getLocalProperties("LOCAL_WEBSOCK_URL")}\"")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${getLocalProperties("GOOGLE_CLIENT_ID")}\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -157,6 +160,10 @@ dependencies {
     //  WebRTC
     implementation(files("$rootDir/${libs.versions.webrtcJarPath.get()}"))
 
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+
     //  Test
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
@@ -164,4 +171,8 @@ dependencies {
     testImplementation(libs.mockk.agent)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    //  FIREBASE
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
 }

@@ -16,6 +16,13 @@ sealed interface TogeError {
     object DuplicatedId : TogeError
     object PasswordNotMatch : TogeError
     object AlreadyJoinedRoom : TogeError
+    object UserNotFoundOrDeleted : TogeError
+    object FailSocialLoginInvalidInfo : TogeError
+    object FailSocialLogin : TogeError
+    object InvalidSocialSignupToken : TogeError
+    object NeedToAgreeTerms : TogeError
+    object FailWithdrawMember : TogeError
+    object FailModifyNickname : TogeError
 
     object UnknownErrorFailedToCalling : TogeError
     object FailedToCreateRoom : TogeError

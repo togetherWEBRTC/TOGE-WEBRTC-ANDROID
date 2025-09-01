@@ -4,7 +4,9 @@ import android.os.Parcelable
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import example.beechang.together.domain.model.SocialLoginType
 import example.beechang.together.domain.usecase.user.RequestLoginUseCase
+import example.beechang.together.domain.usecase.user.RequestSocialLoginUseCase
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
 import example.beechang.together.ui.utils.UiEvent
@@ -16,17 +18,18 @@ import javax.inject.Inject
 @HiltViewModel
 class UserLoginViewModel @Inject constructor(
     private val requestLoginUseCase: RequestLoginUseCase,
-    savedStateHandle: SavedStateHandle
+    private val requestSocialLoginUseCase: RequestSocialLoginUseCase,
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<UserLoginState, UserLoginEvent, UserLoginEffect>(
     savedStateHandle, UserLoginState(), USER_LOGIN_STATE
 ) {
-    public override fun onEvent(event: UserLoginEvent) {
+    override fun onEvent(event: UserLoginEvent) {
         viewModelScope.launch {
             when (event) {
                 is UserLoginEvent.Login -> {
                     handleEvent(
                         action = { requestLoginUseCase.invoke(event.userId, event.password) },
-                        onSuccess = { effect -> sendEffect(UserLoginEffect.LoginSuccess) },
+                        onSuccess = { result -> sendEffect(UserLoginEffect.LoginSuccess) },
                         onError = { error -> },
                         onStart = { updateState { copy(isLoading = true) } },
                         onFinally = { updateState { copy(isLoading = false) } }
@@ -40,10 +43,28 @@ class UserLoginViewModel @Inject constructor(
                 is UserLoginEvent.UserLoginIdChanged -> {
                     updateState { copy(inputUserId = event.id) }
                 }
+
+                is UserLoginEvent.SocialLogin -> {
+                    handleEvent(
+                        action = { requestSocialLoginUseCase.invoke(event.token, event.type) },
+                        onSuccess = { result ->
+                            if (!result.isSuccess && result.isNeedAdditionalInfo) {
+                                sendEffect(
+                                    UserLoginEffect.SocialLoginNeedAdditionalInfo(
+                                        token = result.socialInfoToken,
+                                    )
+                                )
+                            } else {
+                                sendEffect(UserLoginEffect.LoginSuccess)
+                            }
+                        },
+                        onStart = { updateState { copy(isLoading = true) } },
+                        onFinally = { updateState { copy(isLoading = false) } }
+                    )
+                }
             }
         }
     }
-
 
     companion object {
         private const val USER_LOGIN_STATE = "userLoginState"
@@ -54,7 +75,7 @@ class UserLoginViewModel @Inject constructor(
 data class UserLoginState(
     val inputUserId: String = "",
     val inputPassword: String = "",
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
 ) : Parcelable, UiState {
     val isLoginButtonEnabled: Boolean
         get() = inputUserId.isNotEmpty() && inputPassword.isNotEmpty()
@@ -62,10 +83,12 @@ data class UserLoginState(
 
 sealed class UserLoginEvent : UiEvent {
     data class Login(val userId: String, val password: String) : UserLoginEvent()
+    data class SocialLogin(val token: String, val type: SocialLoginType) : UserLoginEvent()
     data class UserLoginIdChanged(val id: String) : UserLoginEvent()
     data class PasswordChanged(val password: String) : UserLoginEvent()
 }
 
 sealed class UserLoginEffect : UiEffect {
     object LoginSuccess : UserLoginEffect()
+    data class SocialLoginNeedAdditionalInfo(val token: String) : UserLoginEffect()
 }
