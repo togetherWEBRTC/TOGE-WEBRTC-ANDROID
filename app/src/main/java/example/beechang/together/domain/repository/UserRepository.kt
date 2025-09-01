@@ -30,6 +30,7 @@ interface UserRepository {
     ): TogeResult<Boolean>
 
     suspend fun modifyProfileImage(): TogeResult<Boolean>
+    suspend fun modifyNickname(nickname: String): TogeResult<Boolean>
     fun getLocalAccessTokenFlow(): Flow<TogeResult<String>>
     suspend fun getNewUserInfo(): TogeResult<UserInfo>
     suspend fun getUserInfo(): TogeResult<UserInfo>

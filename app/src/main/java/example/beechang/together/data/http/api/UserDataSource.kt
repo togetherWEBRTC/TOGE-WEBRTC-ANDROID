@@ -1,6 +1,7 @@
 package example.beechang.together.data.http.api
 
 import example.beechang.together.data.request.LoginRequest
+import example.beechang.together.data.request.ModifyNicknameRequest
 import example.beechang.together.data.request.SignupRequest
 import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.request.SocialSignUpRequest
@@ -17,6 +18,7 @@ interface UserDataSource {
     suspend fun requestSignUp(signUpRequest: SignupRequest): TogeResult<Boolean>
     suspend fun requestSocialSignUp(socialSignUpRequest: SocialSignUpRequest): TogeResult<LoginResponse>
     suspend fun modifyProfileImage(): TogeResult<UserInfoResponse>
+    suspend fun modifyNickname(modifyNicknameRequest: ModifyNicknameRequest): TogeResult<UserInfoResponse>
     suspend fun getUserInfo(): TogeResult<UserInfoResponse>
     suspend fun refreshingAccessToken(): TogeResult<RefreshingAccessTokenResponse>
     suspend fun withdraw(): TogeResult<BaseResponse>

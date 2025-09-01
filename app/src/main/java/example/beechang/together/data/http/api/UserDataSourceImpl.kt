@@ -1,6 +1,7 @@
 package example.beechang.together.data.http.api
 
 import example.beechang.together.data.request.LoginRequest
+import example.beechang.together.data.request.ModifyNicknameRequest
 import example.beechang.together.data.request.SignupRequest
 import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.request.SocialSignUpRequest
@@ -42,6 +43,10 @@ class UserDataSourceImpl @Inject constructor(
 
     override suspend fun modifyProfileImage(): TogeResult<UserInfoResponse> {
         return apiToResult { userApi.modifyProfileImage() }
+    }
+
+    override suspend fun modifyNickname(modifyNicknameRequest: ModifyNicknameRequest): TogeResult<UserInfoResponse> {
+        return apiToResult { userApi.modifyNickname(modifyNicknameRequest) }
     }
 
     override suspend fun getUserInfo(): TogeResult<UserInfoResponse> {

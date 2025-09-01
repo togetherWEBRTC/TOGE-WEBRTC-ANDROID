@@ -1,6 +1,7 @@
 package example.beechang.together.data.http.api
 
 import example.beechang.together.data.request.LoginRequest
+import example.beechang.together.data.request.ModifyNicknameRequest
 import example.beechang.together.data.request.SignupRequest
 import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.request.SocialSignUpRequest
@@ -19,22 +20,22 @@ interface UserApi {
 
     @POST("api/auth/login")
     suspend fun login(
-        @Body request: LoginRequest
+        @Body request: LoginRequest,
     ): Response<LoginResponse>
 
     @POST("api/auth/social-login")
     suspend fun socialLogin(
-        @Body request: SocialLoginRequest
+        @Body request: SocialLoginRequest,
     ): Response<LoginResponse>
 
     @POST("api/auth/signup")
     suspend fun signup(
-        @Body request: SignupRequest
+        @Body request: SignupRequest,
     ): Response<BaseResponse>
 
     @POST("api/auth/social-signup")
     suspend fun socialSignUp(
-        @Body request: SocialSignUpRequest
+        @Body request: SocialSignUpRequest,
     ): Response<LoginResponse>
 
     @POST("api/auth/refresh/token")
@@ -42,7 +43,7 @@ interface UserApi {
 
     @GET("api/auth/usable-id/{userId}")
     suspend fun checkUsableId(
-        @Path("userId") userId: String
+        @Path("userId") userId: String,
     ): Response<BaseResponse>
 
     @GET("api/auth/user-info")
@@ -50,6 +51,11 @@ interface UserApi {
 
     @POST("api/auth/modify/profile-image")
     suspend fun modifyProfileImage(): Response<UserInfoResponse>
+
+    @POST("api/auth/modify/nickname")
+    suspend fun modifyNickname(
+        @Body request: ModifyNicknameRequest,
+    ): Response<UserInfoResponse>
 
     @DELETE("api/auth/withdraw")
     suspend fun withdraw(): Response<BaseResponse>

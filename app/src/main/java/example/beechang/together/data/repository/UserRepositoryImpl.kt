@@ -4,6 +4,7 @@ import android.util.Base64
 import example.beechang.together.BuildConfig
 import example.beechang.together.data.http.api.UserDataSource
 import example.beechang.together.data.request.LoginRequest
+import example.beechang.together.data.request.ModifyNicknameRequest
 import example.beechang.together.data.request.SignupRequest
 import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.request.SocialSignUpRequest
@@ -195,6 +196,10 @@ class UserRepositoryImpl @Inject constructor(
             localPreference.profileUrl = it.userInfo.profileImageUrl
         }.map { it.toSuccessBoolean() }
 
+    override suspend fun modifyNickname(nickname: String): TogeResult<Boolean> =
+        userDataSource.modifyNickname(ModifyNicknameRequest(nickname)).onSuccess {
+            localPreference.nickname = it.userInfo.nickname
+        }.map { it.toSuccessBoolean() }
 
     private fun parseJwtPayload(jwt: String): JSONObject? {
         return try {
