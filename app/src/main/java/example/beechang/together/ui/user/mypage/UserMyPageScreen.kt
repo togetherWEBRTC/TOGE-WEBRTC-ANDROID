@@ -190,13 +190,8 @@ fun UserMyPageRouter(
             }
         },
         onEventLogout = { userPageViewModel.onEvent(UserMyPageEvent.OnLogout) },
-        onClickIsPreparing = {
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(
-                    message = context.getString(R.string.readey),
-                    actionLabel = context.getString(R.string.ok),
-                )
-            }
+        onClickModifyProfile = {
+            UserNavDestination.navigationToModifyNickname(navController)
         },
         /* NAVIGATION */
         onClickBack = { navController.navigateUp() }
@@ -226,7 +221,7 @@ fun UserMyPageScreen(
     onEventPrivacyPolicy: () -> Unit = {},
     onEventTermsOfService: () -> Unit = {},
     onEventLogout: () -> Unit = {},
-    onClickIsPreparing: () -> Unit = {},
+    onClickModifyProfile: () -> Unit = {},
     /* NAVIGATION */
     onClickBack: () -> Unit = {},
 ) {
@@ -405,22 +400,11 @@ fun UserMyPageScreen(
                     value = state.nickname,
                     showChangeButton = true,
                     onChangeClick = {
-                        onClickIsPreparing()
+                        onClickModifyProfile()
                     }
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
-
-                TogeProfileItem(
-                    label = stringResource(R.string.password),
-                    description = stringResource(R.string.password_description),
-                    showChangeButton = true,
-                    onChangeClick = {
-                        onClickIsPreparing()
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth()

@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import example.beechang.together.ui.user.login.UserLoginRouter
 import example.beechang.together.ui.user.mypage.UserMyPageRouter
+import example.beechang.together.ui.user.nickname.UserModifyNicknameRouter
 import example.beechang.together.ui.user.signup.SignUpRouter
 import example.beechang.together.ui.user.signup.UserSocialSignUpRouter
 import example.beechang.together.ui.user.welcome.WelcomeRouter
@@ -18,6 +19,7 @@ object UserNavDestination {
     const val WELCOME = "welcome?nickname={nickname}"
     const val MYPAGE = "mypage"
     const val SOCIAL_SIGNUP = "social_signup?token={token}"
+    const val MODIFY_NICKNAME = "modify_nickname"
 
     fun welcomeWithArgs(nickname: String): String {
         return "welcome?nickname=$nickname"
@@ -47,6 +49,10 @@ object UserNavDestination {
         token: String,
     ) {
         navController.navigate(socialSignupWithArgs(token))
+    }
+
+    fun navigationToModifyNickname(navController: NavController) {
+        navController.navigate(MODIFY_NICKNAME)
     }
 
     fun naviagetToWelcomeFromSocialSignup(navController: NavController, nickname: String) {
@@ -106,6 +112,16 @@ fun NavGraphBuilder.userNavGraph(
         )
     ) { navBackStackEntry ->
         UserSocialSignUpRouter(
+            navBackStackEntry = navBackStackEntry,
+            coroutineScope = coroutineScope,
+            navController = navController,
+        )
+    }
+
+    composable(
+        route = UserNavDestination.MODIFY_NICKNAME,
+    ) { navBackStackEntry ->
+        UserModifyNicknameRouter(
             navBackStackEntry = navBackStackEntry,
             coroutineScope = coroutineScope,
             navController = navController,
