@@ -32,6 +32,7 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
         1009 -> TogeError.InvalidSocialSignupToken
         1011 -> TogeError.NeedToAgreeTerms
         1012 -> TogeError.FailWithdrawMember
+        1013 -> TogeError.FailModifyNickname
 
         10001 -> TogeError.AlreadyJoinedRoom
         10002 -> TogeError.RoomNotFound

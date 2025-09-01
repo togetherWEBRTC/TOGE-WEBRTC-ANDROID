@@ -22,6 +22,7 @@ sealed interface TogeError {
     object InvalidSocialSignupToken : TogeError
     object NeedToAgreeTerms : TogeError
     object FailWithdrawMember : TogeError
+    object FailModifyNickname : TogeError
 
     object UnknownErrorFailedToCalling : TogeError
     object FailedToCreateRoom : TogeError
