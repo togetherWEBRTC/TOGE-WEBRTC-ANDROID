@@ -143,11 +143,8 @@ fun CallRoomRouter(
     val handleToggleCamera: (Boolean) -> Unit = { enabled ->
         if (enabled && cameraPermissionData?.status != PermissionHandlerStatus.GRANTED) {
             permissionHandler.requestPermission(
-                permission = Manifest.permission.CAMERA,
-                isMoveToSettings = false
-            ) {
-
-            }
+                permission = Manifest.permission.CAMERA
+            )
         } else {
             signallingViewModel.onEvent(ToggleVideoEnabled(enabled))
         }

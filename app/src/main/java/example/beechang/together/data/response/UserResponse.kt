@@ -12,28 +12,36 @@ data class LoginResponse(
     @SerialName("refreshToken") val refreshToken: String? = null,
     @SerialName("isNeedAdditionalInfo") val isNeedAdditionalInfo: Boolean? = null,
     @SerialName("socialToken") val socialToken: String? = null,
-    @SerialName("socialType") val socialType: String? = null
+    @SerialName("socialType") val socialType: String? = null,
 ) : TogeResponse
 
 @Serializable
 data class RefreshingAccessTokenResponse(
     @SerialName("code") override val code: Int,
     @SerialName("message") override val message: String,
-    @SerialName("accessToken") val accessToken: String? = null
+    @SerialName("accessToken") val accessToken: String? = null,
+) : TogeResponse
+
+@Serializable
+data class ModifyUserInfoResponse(
+    @SerialName("code") override val code: Int,
+    @SerialName("message") override val message: String,
+    @SerialName("userInfo") val userInfo: UserInfoDataResponse,
+    @SerialName("accessToken") val accessToken: String,
 ) : TogeResponse
 
 @Serializable
 data class UserInfoResponse(
     @SerialName("code") override val code: Int,
     @SerialName("message") override val message: String,
-    @SerialName("userInfo") val userInfo: UserInfoDataResponse
+    @SerialName("userInfo") val userInfo: UserInfoDataResponse,
 ) : TogeResponse
 
 @Serializable
 data class UserInfoDataResponse(
     @SerialName("userId") val userId: String = "",
     @SerialName("name") val nickname: String = "",
-    @SerialName("profileUrl") val profileImageUrl: String = ""
+    @SerialName("profileUrl") val profileImageUrl: String = "",
 ) {
     fun toUserInfo(): UserInfo {
         return UserInfo(

@@ -7,6 +7,7 @@ import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.request.SocialSignUpRequest
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.LoginResponse
+import example.beechang.together.data.response.ModifyUserInfoResponse
 import example.beechang.together.data.response.RefreshingAccessTokenResponse
 import example.beechang.together.data.response.UserInfoResponse
 import retrofit2.Response
@@ -50,12 +51,12 @@ interface UserApi {
     suspend fun getUserInfo(): Response<UserInfoResponse>
 
     @POST("api/auth/modify/profile-image")
-    suspend fun modifyProfileImage(): Response<UserInfoResponse>
+    suspend fun modifyProfileImage(): Response<ModifyUserInfoResponse>
 
     @POST("api/auth/modify/nickname")
     suspend fun modifyNickname(
         @Body request: ModifyNicknameRequest,
-    ): Response<UserInfoResponse>
+    ): Response<ModifyUserInfoResponse>
 
     @DELETE("api/auth/withdraw")
     suspend fun withdraw(): Response<BaseResponse>

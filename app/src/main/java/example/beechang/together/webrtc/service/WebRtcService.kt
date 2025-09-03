@@ -38,15 +38,21 @@ class WebRtcService : Service() {
 
     fun startCall(
         returnAppIntent: Intent,
-        stopActionIntent: Intent
+        stopActionIntent: Intent,
     ) {
         val notification = createCallNotification(
             contentIntent = returnAppIntent,
             stopActionIntent = stopActionIntent
         )
 
+        val foregroundServiceType = calculateForegroundServiceType()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && foregroundServiceType == 0) {
+            stopSelf()
+            return
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, calculateForegroundServiceType())
+            startForeground(NOTIFICATION_ID, notification, foregroundServiceType)
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
@@ -72,10 +78,6 @@ class WebRtcService : Service() {
             type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         }
 
-        if (type == 0) {
-            type = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-        }
-
         return type
     }
 
@@ -88,7 +90,7 @@ class WebRtcService : Service() {
 
     private fun createCallNotification(
         contentIntent: Intent,
-        stopActionIntent: Intent
+        stopActionIntent: Intent,
     ): Notification {
         val flag = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 

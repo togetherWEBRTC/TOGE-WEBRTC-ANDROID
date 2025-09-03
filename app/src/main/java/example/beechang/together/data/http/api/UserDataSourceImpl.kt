@@ -7,6 +7,7 @@ import example.beechang.together.data.request.SocialLoginRequest
 import example.beechang.together.data.request.SocialSignUpRequest
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.LoginResponse
+import example.beechang.together.data.response.ModifyUserInfoResponse
 import example.beechang.together.data.response.RefreshingAccessTokenResponse
 import example.beechang.together.data.response.UserInfoResponse
 import example.beechang.together.data.response.handler.apiToResult
@@ -16,7 +17,7 @@ import jakarta.inject.Inject
 
 
 class UserDataSourceImpl @Inject constructor(
-    private val userApi: UserApi
+    private val userApi: UserApi,
 ) : UserDataSource {
 
     override suspend fun requestLogin(loginRequest: LoginRequest): TogeResult<LoginResponse> {
@@ -41,11 +42,11 @@ class UserDataSourceImpl @Inject constructor(
         return apiToResult { userApi.socialSignUp(socialSignUpRequest) }
     }
 
-    override suspend fun modifyProfileImage(): TogeResult<UserInfoResponse> {
+    override suspend fun modifyProfileImage(): TogeResult<ModifyUserInfoResponse> {
         return apiToResult { userApi.modifyProfileImage() }
     }
 
-    override suspend fun modifyNickname(modifyNicknameRequest: ModifyNicknameRequest): TogeResult<UserInfoResponse> {
+    override suspend fun modifyNickname(modifyNicknameRequest: ModifyNicknameRequest): TogeResult<ModifyUserInfoResponse> {
         return apiToResult { userApi.modifyNickname(modifyNicknameRequest) }
     }
 
