@@ -109,14 +109,15 @@ fun CallingBottomBar(
                     containerColor = LocalTogeAppColor.current.grey700,
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                TogeCircleIconButton(
-                    icon = R.drawable.ic_chat,
-                    onClick = { onClickChat() },
-                    width = 60.dp,
-                    containerColor = LocalTogeAppColor.current.grey700,
-                )
+//                TODO: 출시 이후에 처리 미완료 기능 주석처리
+//                Spacer(modifier = Modifier.width(8.dp))
+//
+//                TogeCircleIconButton(
+//                    icon = R.drawable.ic_chat,
+//                    onClick = { onClickChat() },
+//                    width = 60.dp,
+//                    containerColor = LocalTogeAppColor.current.grey700,
+//                )
             }
         }
         // device navigation bar height
