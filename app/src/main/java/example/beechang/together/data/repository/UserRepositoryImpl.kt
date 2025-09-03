@@ -194,11 +194,13 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun modifyProfileImage(): TogeResult<Boolean> =
         userDataSource.modifyProfileImage().onSuccess {
             localPreference.profileUrl = it.userInfo.profileImageUrl
+            localPreference.accessToken = it.accessToken
         }.map { it.toSuccessBoolean() }
 
     override suspend fun modifyNickname(nickname: String): TogeResult<Boolean> =
         userDataSource.modifyNickname(ModifyNicknameRequest(nickname)).onSuccess {
             localPreference.nickname = it.userInfo.nickname
+            localPreference.accessToken = it.accessToken
         }.map { it.toSuccessBoolean() }
 
     private fun parseJwtPayload(jwt: String): JSONObject? {
