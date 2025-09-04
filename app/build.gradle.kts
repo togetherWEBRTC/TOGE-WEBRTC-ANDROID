@@ -52,6 +52,18 @@ android {
         )
     }
 
+    signingConfigs {
+        create("release") {
+            val storeFilePath = getLocalProperties("MY_STORE_FILE")
+            if (storeFilePath.isNotEmpty()) {
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = getLocalProperties("MY_STORE_PASSWORD")
+                keyAlias = getLocalProperties("MY_KEY_ALIAS")
+                keyPassword = getLocalProperties("MY_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -76,6 +88,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
