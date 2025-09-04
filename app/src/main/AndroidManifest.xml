@@ -54,7 +54,7 @@
             android:name=".webrtc.service.WebRtcService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="camera|microphone|dataSync" />
+            android:foregroundServiceType="camera|microphone" />
 
     </application>
 
