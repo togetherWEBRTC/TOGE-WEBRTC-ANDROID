@@ -1,17 +1,22 @@
 package example.beechang.together.data.repository
 
 import android.util.Base64
-import android.util.Log
 import example.beechang.together.BuildConfig
 import example.beechang.together.data.http.api.UserDataSource
 import example.beechang.together.data.request.LoginRequest
+import example.beechang.together.data.request.ModifyNicknameRequest
 import example.beechang.together.data.request.SignupRequest
+import example.beechang.together.data.request.SocialLoginRequest
+import example.beechang.together.data.request.SocialSignUpRequest
+import example.beechang.together.data.response.LoginResponse
 import example.beechang.together.domain.data.LocalPreference
 import example.beechang.together.domain.data.TogeError.InvalidAccessToken
 import example.beechang.together.domain.data.TogeError.InvalidUserInfo
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
 import example.beechang.together.domain.model.LoginState
+import example.beechang.together.domain.model.SocialLoginResult
+import example.beechang.together.domain.model.SocialLoginType
 import example.beechang.together.domain.model.UserInfo
 import example.beechang.together.domain.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
@@ -24,26 +29,34 @@ import javax.inject.Singleton
 @Singleton
 class UserRepositoryImpl @Inject constructor(
     private val userDataSource: UserDataSource,
-    private val localPreference: LocalPreference
+    private val localPreference: LocalPreference,
 ) : UserRepository {
 
     override suspend fun requestLogin(userId: String, password: String): TogeResult<Boolean> {
         return userDataSource.requestLogin(LoginRequest(userId, password)).onSuccess {
-            localPreference.run {
-                parseJwtPayload(it.accessToken ?: "")?.let { payload ->
-                    uid = payload.getString("userId") ?: ""
-                    nickname = payload.getString("nickname") ?: ""
-                    profileUrl = payload.getString("profileUrl") ?: ""
-                    accessTokenIat = payload.getLong("iat")
-                }
-                accessToken = it.accessToken ?: ""
-                refreshToken = it.refreshToken ?: ""
-                loginState = LoginState.Login.name
-                Log.e("DefaultUserRepository", "accessToken: $accessToken")
-            }
+            saveAuthData(it)
         }.map {
             it.toSuccessBoolean()
         }
+    }
+
+    override suspend fun requestSocialLogin(
+        token: String,
+        type: SocialLoginType,
+    ): TogeResult<SocialLoginResult> {
+        return userDataSource.requestSocialLogin(SocialLoginRequest(token, type.name))
+            .onSuccess {
+                if (!it.accessToken.isNullOrBlank() && !it.refreshToken.isNullOrBlank()) {
+                    saveAuthData(it)
+                }
+            }.map {
+                val isSuccess = !it.accessToken.isNullOrBlank() && !it.refreshToken.isNullOrBlank()
+                SocialLoginResult(
+                    isSuccess = isSuccess,
+                    isNeedAdditionalInfo = it.isNeedAdditionalInfo ?: false,
+                    socialInfoToken = it.socialToken ?: ""
+                )
+            }
     }
 
     override suspend fun checkUsableId(userId: String): TogeResult<Boolean> =
@@ -53,11 +66,33 @@ class UserRepositoryImpl @Inject constructor(
         userId: String,
         nickname: String,
         password: String,
-        passwordConfirm: String
+        passwordConfirm: String,
     ): TogeResult<Boolean> =
         userDataSource.requestSignUp(
             signUpRequest = SignupRequest(userId, nickname, password, passwordConfirm)
         )
+
+    override suspend fun requestSocialSignUp(
+        token: String,
+        nickname: String,
+        isAgreedTerms: Boolean,
+        isAgreedPrivacy: Boolean,
+    ): TogeResult<Boolean> {
+        return userDataSource.requestSocialSignUp(
+            socialSignUpRequest = SocialSignUpRequest(
+                token = token,
+                nickname = nickname,
+                isAgreedTerms = isAgreedTerms,
+                isAgreedPrivacy = isAgreedPrivacy
+            )
+        ).onSuccess {
+            if (!it.accessToken.isNullOrBlank() && !it.refreshToken.isNullOrBlank()) {
+                saveAuthData(it)
+            }
+        }.map {
+            it.toSuccessBoolean()
+        }
+    }
 
     override fun getLocalAccessTokenFlow(): Flow<TogeResult<String>> =
         localPreference.accessTokenFlow.map {
@@ -119,6 +154,24 @@ class UserRepositoryImpl @Inject constructor(
         return TogeResult.Success(true)
     }
 
+    override suspend fun withdraw(): TogeResult<Boolean> {
+        return userDataSource.withdraw().onSuccess {
+            localPreference.run {
+                loginState = LoginState.Logout.name
+                clear()
+            }
+        }.map { it.toSuccessBoolean() }
+    }
+
+    override suspend fun socialWithdraw(): TogeResult<Boolean> {
+        return userDataSource.socialWithdraw().onSuccess {
+            localPreference.run {
+                loginState = LoginState.Logout.name
+                clear()
+            }
+        }.map { it.toSuccessBoolean() }
+    }
+
     override suspend fun getLoginStateFlow(): Flow<TogeResult<LoginState>> =
         localPreference.loginStateFlow.map {
             TogeResult.Success(LoginState.getLoginState(it))
@@ -140,9 +193,25 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun modifyProfileImage(): TogeResult<Boolean> =
         userDataSource.modifyProfileImage().onSuccess {
-            localPreference.profileUrl = it.userInfo.profileImageUrl
+            localPreference.run {
+                profileUrl = it.userInfo.profileImageUrl
+                accessToken = it.accessToken
+                parseJwtPayload(it.accessToken)?.let { payload ->
+                    accessTokenIat = payload.getLong("iat")
+                }
+            }
         }.map { it.toSuccessBoolean() }
 
+    override suspend fun modifyNickname(nickname: String): TogeResult<Boolean> =
+        userDataSource.modifyNickname(ModifyNicknameRequest(nickname)).onSuccess {
+            localPreference.run {
+                this.nickname = it.userInfo.nickname
+                accessToken = it.accessToken
+                parseJwtPayload(it.accessToken)?.let { payload ->
+                    accessTokenIat = payload.getLong("iat")
+                }
+            }
+        }.map { it.toSuccessBoolean() }
 
     private fun parseJwtPayload(jwt: String): JSONObject? {
         return try {
@@ -157,6 +226,20 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    private fun saveAuthData(response: LoginResponse) {
+        localPreference.run {
+            parseJwtPayload(response.accessToken ?: "")?.let { payload ->
+                uid = payload.getString("userId") ?: ""
+                nickname = payload.getString("nickname") ?: ""
+                profileUrl = payload.getString("profileUrl") ?: ""
+                accessTokenIat = payload.getLong("iat")
+            }
+            accessToken = response.accessToken ?: ""
+            refreshToken = response.refreshToken ?: ""
+            loginState = LoginState.Login.name
         }
     }
 }

@@ -1,5 +1,7 @@
 package example.beechang.together.ui.user.mypage
 
+import android.content.Intent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +18,12 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
@@ -23,18 +31,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -45,14 +57,18 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.LoginState
 import example.beechang.together.ui.component.card.TogeProfileItem
 import example.beechang.together.ui.component.dialog.TogeDialog
+import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
 import example.beechang.together.ui.component.scaffold.TogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
-import example.beechang.together.ui.component.topbar.TogeSimpleBackTopBar
+import example.beechang.together.ui.component.topbar.TogeBaseTopBar
+import example.beechang.together.ui.component.util.CircleRippleEffectForIcon
 import example.beechang.together.ui.component.util.CircularImage
 import example.beechang.together.ui.component.util.ClickShrinkEffect
 import example.beechang.together.ui.home.HomeNavDestination
 import example.beechang.together.ui.theme.LocalTogeAppColor
 import example.beechang.together.ui.user.UserNavDestination
+import example.beechang.together.ui.utils.RemoteConfigKey
+import example.beechang.together.ui.utils.RemoteConfigManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -67,6 +83,14 @@ fun UserMyPageRouter(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    /* Dialog States */
+    var isShowDoubleCheckModifyProfileDialog by remember { mutableStateOf(false) }
+    var isShowWithdrawDialog by remember { mutableStateOf(false) }
+    var isShowWithdrawSuccessDialog by remember { mutableStateOf(false) }
+
+    /* Menu */
+    var isExpandedMoreMenu by remember { mutableStateOf(false) }
+
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.sideEffect.collect {
             when (it) {
@@ -75,6 +99,10 @@ fun UserMyPageRouter(
                         message = context.getString(R.string.my_profile_edit_success),
                         actionLabel = context.getString(R.string.ok),
                     )
+                }
+
+                UserMyPageEffect.SuccessWithdraw -> {
+                    isShowWithdrawSuccessDialog = true
                 }
             }
         }
@@ -87,13 +115,20 @@ fun UserMyPageRouter(
                     message = context.getString(R.string.connection_problem),
                     duration = SnackbarDuration.Short
                 )
+            } else if (error is TogeError.UserNotFoundOrDeleted) {
+                isShowWithdrawSuccessDialog = true
+            } else if (error is TogeError.FailWithdrawMember) {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.connection_problem),
+                    duration = SnackbarDuration.Short
+                )
             }
         }
     }
 
     LaunchedEffect(userPageViewModel) {
         userPageViewModel.loginState.collect { state ->
-            if (state == LoginState.Logout) {
+            if (state == LoginState.Logout && !isShowWithdrawSuccessDialog) {
                 HomeNavDestination.navigateToHome(navController)
             } else if (state == LoginState.SessionExpired) {
                 snackbarHostState.showSnackbar(
@@ -113,170 +148,287 @@ fun UserMyPageRouter(
 
     UserMyPageScreen(
         modifier = modifier,
-        state = state,
         snackbarHostState = snackbarHostState,
+        /* STATE */
+        state = state,
+        isShowDoubleCheckModifyProfileDialog = isShowDoubleCheckModifyProfileDialog,
+        isShowWithdrawDialog = isShowWithdrawDialog,
+        isShowWithdrawSuccessDialog = isShowWithdrawSuccessDialog,
+        isExpandedMoreMenu = isExpandedMoreMenu,
         /* EVENT */
-        onEventDoubleCheckModifyProfileImage = {
-            userPageViewModel.onEvent(UserMyPageEvent.OnDoubleCheckModifyProfileImage)
-        },
+        onEventShowModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = true },
         onEventModifyProfileImage = {
+            isShowDoubleCheckModifyProfileDialog = false
             userPageViewModel.onEvent(UserMyPageEvent.OnModifyProfileImage)
         },
-        onEventCancelModifyProfileImage = {
-            userPageViewModel.onEvent(UserMyPageEvent.OnCancelModifyProfileImage)
+        onEventDismissModifyProfileDialog = { isShowDoubleCheckModifyProfileDialog = false },
+        onEventShowWithdrawDialog = { isShowWithdrawDialog = true },
+        onEventWithdraw = {
+            isShowWithdrawDialog = false
+            userPageViewModel.onEvent(UserMyPageEvent.OnWithdraw)
         },
-        onEventLogout = {
-            userPageViewModel.onEvent(UserMyPageEvent.OnLogout)
+        onEventDismissWithdrawDialog = { isShowWithdrawDialog = false },
+        onEventConfirmWithdrawSuccess = {
+            isShowWithdrawSuccessDialog = false
+            HomeNavDestination.navigateToHome(navController)
         },
-        onClickIsPreparing = {
-            coroutineScope.launch {
-                snackbarHostState.showSnackbar(
-                    message = context.getString(R.string.readey),
-                    actionLabel = context.getString(R.string.ok),
-                )
+        onEventSwitchMoreMenu = {
+            isExpandedMoreMenu = !isExpandedMoreMenu
+        },
+        onEventPrivacyPolicy = {
+            val url = RemoteConfigManager.getValue(RemoteConfigKey.PRIVACY_POLICY)
+            if (!url.isNullOrBlank()) {
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                context.startActivity(intent)
             }
+        },
+        onEventTermsOfService = {
+            val url = RemoteConfigManager.getValue(RemoteConfigKey.TERMS_OF_SERVICE)
+            if (!url.isNullOrBlank()) {
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                context.startActivity(intent)
+            }
+        },
+        onEventLogout = { userPageViewModel.onEvent(UserMyPageEvent.OnLogout) },
+        onClickModifyProfile = {
+            UserNavDestination.navigationToModifyNickname(navController)
         },
         /* NAVIGATION */
         onClickBack = { navController.navigateUp() }
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UserMyPageScreen(
     modifier: Modifier = Modifier,
     /* STATE */
     state: UserMyPageState = UserMyPageState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    isShowDoubleCheckModifyProfileDialog: Boolean = false,
+    isShowWithdrawDialog: Boolean = false,
+    isShowWithdrawSuccessDialog: Boolean = false,
+    isExpandedMoreMenu: Boolean = false,
     /* EVENT */
-    onEventDoubleCheckModifyProfileImage: () -> Unit = {},
+    onEventShowModifyProfileDialog: () -> Unit = {},
     onEventModifyProfileImage: () -> Unit = {},
-    onEventCancelModifyProfileImage: () -> Unit = {},
+    onEventDismissModifyProfileDialog: () -> Unit = {},
+    onEventShowWithdrawDialog: () -> Unit = {},
+    onEventWithdraw: () -> Unit = {},
+    onEventDismissWithdrawDialog: () -> Unit = {},
+    onEventConfirmWithdrawSuccess: () -> Unit = {},
+    onEventSwitchMoreMenu: () -> Unit = {},
+    onEventPrivacyPolicy: () -> Unit = {},
+    onEventTermsOfService: () -> Unit = {},
     onEventLogout: () -> Unit = {},
-    onClickIsPreparing: () -> Unit = {},
+    onClickModifyProfile: () -> Unit = {},
     /* NAVIGATION */
-    onClickBack: () -> Unit = {}
+    onClickBack: () -> Unit = {},
 ) {
 
     val scrollState = rememberScrollState()
 
     TogeDialog(
-        isShowDialog = state.isShowDoubleCheckModifyProfileImage,
+        isShowDialog = isShowDoubleCheckModifyProfileDialog,
         title = stringResource(R.string.my_profile_edit),
         content = stringResource(R.string.my_profile_edit_prompt),
         dismissOnBackPress = true,
         dismissOnClickOutside = true,
         onConfirm = { onEventModifyProfileImage() },
-        onDismiss = { onEventCancelModifyProfileImage() },
+        onDismiss = { onEventDismissModifyProfileDialog() }
+    )
+
+    TogeDialog(
+        isShowDialog = isShowWithdrawDialog,
+        title = stringResource(R.string.withdraw),
+        content = stringResource(R.string.withdraw_prompt),
+        dismissOnBackPress = true,
+        dismissOnClickOutside = true,
+        onConfirm = { onEventWithdraw() },
+        onDismiss = { onEventDismissWithdrawDialog() }
+    )
+
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowWithdrawSuccessDialog,
+        title = stringResource(R.string.withdraw),
+        content = stringResource(R.string.withdraw_success),
+        confirmButtonText = stringResource(R.string.ok),
+        dismissOnBackPress = false,
+        dismissOnClickOutside = false,
+        onConfirm = { onEventConfirmWithdrawSuccess() },
     )
 
     TogeScaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { TogeSimpleBackTopBar(onClickBack = onClickBack) },
-        snackbarHost = { TogeSnackbarHost(hostState = snackbarHostState) },
-        isLoading = state.isLoading,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(32.dp))
-
-
-            // Profile Image
-            ConstraintLayout(
-                modifier = Modifier.wrapContentSize()
-            ) {
-                CircularImage(
-                    modifier = Modifier.constrainAs(ref = createRef()) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    },
-                    imageUrl = state.profileImageUrl,
-                    size = 160.dp,
-                    borderWidth = 4.dp,
-                )
-                ClickShrinkEffect(
-                    modifier = Modifier.constrainAs(ref = createRef()) {
-                        end.linkTo(parent.end)
-                        bottom.linkTo(parent.bottom)
-                    },
-                    onClick = { onEventDoubleCheckModifyProfileImage() }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .height(40.dp)
-                            .width(40.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
-                            .background(color = LocalTogeAppColor.current.primary500),
-                        contentAlignment = Alignment.Center
+        topBar = {
+            TogeBaseTopBar(
+                horizontalPadding = 8.dp,
+                leftContent = {
+                    CircleRippleEffectForIcon(
+                        buttonSize = 36,
+                        onClick = onClickBack
                     ) {
-                        CircularImage(
-                            imageUrl = R.drawable.ic_union,
-                            size = 24.dp,
-                            borderWidth = 0.dp,
-                            contentScale = ContentScale.Fit,
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_back),
+                            modifier = Modifier.size(24.dp),
+                            contentDescription = "back"
+                        )
+                    }
+                },
+                rightContent = {
+                    Box {
+                        CircleRippleEffectForIcon(
+                            buttonSize = 36,
+                            onClick = { onEventSwitchMoreMenu() }
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_more),
+                                modifier = Modifier.size(24.dp),
+                                contentDescription = "more"
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = isExpandedMoreMenu,
+                        onDismissRequest = { onEventSwitchMoreMenu() }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.privacy_policy),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            onClick = {
+                                onEventSwitchMoreMenu()
+                                onEventPrivacyPolicy()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.terms_of_service),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            onClick = {
+                                onEventSwitchMoreMenu()
+                                onEventTermsOfService()
+                            }
                         )
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(
-                text = stringResource(R.string.welcome_user_nickname, state.nickname),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.id),
-                value = state.userId,
-                showChangeButton = false
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.nickname),
-                value = state.nickname,
-                showChangeButton = true,
-                onChangeClick = {
-                    onClickIsPreparing()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TogeProfileItem(
-                label = stringResource(R.string.password),
-                description = stringResource(R.string.password_description),
-                showChangeButton = true,
-                onChangeClick = {
-                    onClickIsPreparing()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth()
+        },
+        snackbarHost = { TogeSnackbarHost(hostState = snackbarHostState) },
+        isLoading = state.isLoading,
+    ) {
+        CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Profile Image
+                ConstraintLayout(
+                    modifier = Modifier.wrapContentSize()
+                ) {
+                    CircularImage(
+                        modifier = Modifier.constrainAs(ref = createRef()) {
+                            top.linkTo(parent.top)
+                            start.linkTo(parent.start)
+                            end.linkTo(parent.end)
+                            bottom.linkTo(parent.bottom)
+                        },
+                        imageUrl = state.profileImageUrl,
+                        size = 160.dp,
+                        borderWidth = 4.dp,
+                    )
+                    ClickShrinkEffect(
+                        modifier = Modifier.constrainAs(ref = createRef()) {
+                            end.linkTo(parent.end)
+                            bottom.linkTo(parent.bottom)
+                        },
+                        onClick = { onEventShowModifyProfileDialog() }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .width(40.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
+                                .background(color = LocalTogeAppColor.current.primary500),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularImage(
+                                imageUrl = R.drawable.ic_union,
+                                size = 24.dp,
+                                borderWidth = 0.dp,
+                                contentScale = ContentScale.Fit,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = stringResource(R.string.logout),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = LocalTogeAppColor.current.grey600,
-                    modifier = Modifier.clickable {
-                        onEventLogout()
+                    text = stringResource(R.string.welcome_user_nickname, state.nickname),
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.id),
+                    value = state.userId,
+                    showChangeButton = false
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                TogeProfileItem(
+                    label = stringResource(R.string.nickname),
+                    value = state.nickname,
+                    showChangeButton = true,
+                    onChangeClick = {
+                        onClickModifyProfile()
                     }
                 )
-            }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = stringResource(R.string.logout),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LocalTogeAppColor.current.grey600,
+                        modifier = Modifier.clickable {
+                            onEventLogout()
+                        }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = stringResource(R.string.withdraw),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LocalTogeAppColor.current.grey600,
+                        modifier = Modifier.clickable {
+                            onEventShowWithdrawDialog()
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -289,8 +441,7 @@ fun PreviewUserMyPageScreen() {
             isLoading = false,
             profileImageUrl = "https://example.com/profile.jpg",
             nickname = "TOGE_NAME",
-            userId = "TogeUserId",
-            isShowDoubleCheckModifyProfileImage = false
+            userId = "TogeUserId"
         )
     )
 }

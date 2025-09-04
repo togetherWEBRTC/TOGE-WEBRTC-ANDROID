@@ -2,42 +2,40 @@ package example.beechang.together.ui.utils
 
 import android.util.Log
 import androidx.compose.runtime.MutableState
-import org.webrtc.EglBase
-import org.webrtc.SurfaceViewRenderer
+import example.beechang.together.ui.component.util.webrtc.TogeTextureViewRenderer
+
 import org.webrtc.VideoTrack
 
 class WebRtcLifecycleHandler(
     private val userId: String,
     private val videoTrack: MutableState<VideoTrack?>,
-    private val surfaceViewRenderer: MutableState<SurfaceViewRenderer?>,
-    private val isInitialized: MutableState<Boolean>,
-    private val eglBase: EglBase?
+    private val renderer: MutableState<TogeTextureViewRenderer?>,
+    private val isInitialized: MutableState<Boolean>
 ) {
-
     fun onResume(newVideoTrack: VideoTrack?) {
-        surfaceViewRenderer.value?.let { renderer ->
-            if (isInitialized.value && eglBase?.eglBaseContext != null) {
+        renderer.value?.let { rend ->
+            if (isInitialized.value) {
                 try {
-                    if (newVideoTrack != null) {
+                    if (newVideoTrack != null && videoTrack.value != newVideoTrack) {
+                        videoTrack.value?.removeSink(rend)
                         videoTrack.value = newVideoTrack
-                        newVideoTrack.addSink(renderer)
+                        newVideoTrack.addSink(rend)
                     } else {
-                        videoTrack.value?.addSink(renderer)
-                        Log.d("WebRtcLifecycleHandler", "$userId's existing sink resumed")
+                        videoTrack.value?.addSink(rend)
                     }
                 } catch (e: Exception) {
                     Log.e("WebRtcLifecycleHandler", "Error adding sink on resume for $userId", e)
                 }
             } else {
-                Log.e("WebRtcLifecycleHandler", "$userId - not initialized or no EGL context")
+                Log.e("WebRtcLifecycleHandler", "$userId - renderer not initialized on resume.")
             }
         }
     }
 
     fun onPause() {
-        surfaceViewRenderer.value?.let { renderer ->
+        renderer.value?.let { rend ->
             try {
-                videoTrack.value?.removeSink(renderer)
+                videoTrack.value?.removeSink(rend)
             } catch (e: Exception) {
                 Log.e("WebRtcLifecycleHandler", "Error removing sink on pause for $userId", e)
             }
@@ -45,16 +43,16 @@ class WebRtcLifecycleHandler(
     }
 
     fun onDestroy() {
-        surfaceViewRenderer.value?.let { renderer ->
+        renderer.value?.let { rend ->
             try {
-                videoTrack.value?.removeSink(renderer)
-                renderer.release()
+                videoTrack.value?.removeSink(rend)
+                rend.release()
                 isInitialized.value = false
             } catch (e: Exception) {
                 Log.e("WebRtcLifecycleHandler", "Error cleaning up renderer for $userId", e)
             }
         }
-        surfaceViewRenderer.value = null
+        renderer.value = null
         videoTrack.value = null
     }
 }

@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import android.os.Build
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.LoginState
@@ -162,10 +163,30 @@ fun HomeScreen(
 
     val cameraPermissionStr = Manifest.permission.CAMERA
     val micPermissionStr = Manifest.permission.RECORD_AUDIO
-    val permissionHandler =
-        rememberMultiPermissionHandler(listOf(cameraPermissionStr, micPermissionStr))
+    val notificationPermissionStr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.POST_NOTIFICATIONS
+    } else null
+
+    val permissions = mutableListOf(cameraPermissionStr, micPermissionStr)
+    notificationPermissionStr?.let { permissions.add(it) }
+
+    val permissionHandler = rememberMultiPermissionHandler(permissions)
     val cameraPermissionData = permissionHandler.permissionsData[Manifest.permission.CAMERA]
     val micPermissionData = permissionHandler.permissionsData[Manifest.permission.RECORD_AUDIO]
+    val notificationPermissionData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        permissionHandler.permissionsData[Manifest.permission.POST_NOTIFICATIONS]
+    } else null
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionStr?.let { permission ->
+                val permissionData = permissionHandler.permissionsData[permission]
+                if (permissionData?.status == PermissionHandlerStatus.SHOULD_REQUEST) {
+                    permissionHandler.requestPermission(permission, isMoveToSettings = false)
+                }
+            }
+        }
+    }
 
     TogeScaffold(
         modifier = modifier
@@ -253,6 +274,19 @@ fun HomeScreen(
                 onAllowClick = { permissionHandler.requestPermission(micPermissionStr) }
             )
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                TogePermissionItem(
+                    icon = painterResource(id = R.drawable.ic_notification_active),
+                    title = stringResource(R.string.notify),
+                    isGranted = notificationPermissionData?.status == PermissionHandlerStatus.GRANTED,
+                    onAllowClick = {
+                        notificationPermissionStr?.let { permissionHandler.requestPermission(it) }
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             if (!permissionHandler.areAllPermissionsGranted) {
@@ -268,7 +302,9 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = LocalTogeAppColor.current.grey200,
                     )
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Start,
@@ -287,7 +323,9 @@ fun HomeScreen(
                             color = LocalTogeAppColor.current.grey200,
                         )
                     }
+
                     Spacer(modifier = Modifier.height(8.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Start,
@@ -305,6 +343,28 @@ fun HomeScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = LocalTogeAppColor.current.grey200,
                         )
+                    }
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_notification_active),
+                                contentDescription = null,
+                                modifier = Modifier.size(4.dp),
+                                tint = LocalTogeAppColor.current.grey500,
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = stringResource(R.string.permission_description_notification),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LocalTogeAppColor.current.grey200,
+                            )
+                        }
                     }
                 }
             }

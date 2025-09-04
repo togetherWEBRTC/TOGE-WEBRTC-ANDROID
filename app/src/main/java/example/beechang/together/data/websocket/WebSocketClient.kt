@@ -2,23 +2,33 @@ package example.beechang.together.data.websocket
 
 import example.beechang.together.data.response.WebSocketEventResponse
 import example.beechang.together.domain.data.TogeResult
-import kotlinx.coroutines.flow.SharedFlow
-import kotlin.reflect.KClass
+import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.KSerializer
 
 interface WebSocketClient {
     var isConnected: Boolean
-    val eventFlow: SharedFlow<WebSocketEventResponse>
+    val eventFlow: Flow<WebSocketEventResponse>
+    val connectionStateFlow: Flow<WebSocketConnectionState>
     suspend fun connect(token: String): Boolean
     suspend fun disconnect(): Boolean
     suspend fun <RESP : Any> emitWithAck(
         event: String,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP>
 
     suspend fun <REQ : Any, RESP : Any> emitWithAck(
         event: String,
         request: REQ,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP>
+}
+
+enum class WebSocketConnectionState {
+    CONNECTED,
+    DISCONNECTED,
+    RECONNECTING,
+    RECONNECTED,
+    FAILED_RECONNECT,
+    PENDING
 }
 

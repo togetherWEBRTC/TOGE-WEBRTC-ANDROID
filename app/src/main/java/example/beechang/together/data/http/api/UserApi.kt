@@ -1,13 +1,18 @@
 package example.beechang.together.data.http.api
 
 import example.beechang.together.data.request.LoginRequest
+import example.beechang.together.data.request.ModifyNicknameRequest
 import example.beechang.together.data.request.SignupRequest
+import example.beechang.together.data.request.SocialLoginRequest
+import example.beechang.together.data.request.SocialSignUpRequest
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.LoginResponse
+import example.beechang.together.data.response.ModifyUserInfoResponse
 import example.beechang.together.data.response.RefreshingAccessTokenResponse
 import example.beechang.together.data.response.UserInfoResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -16,25 +21,46 @@ interface UserApi {
 
     @POST("api/auth/login")
     suspend fun login(
-        @Body request: LoginRequest
+        @Body request: LoginRequest,
+    ): Response<LoginResponse>
+
+    @POST("api/auth/social-login")
+    suspend fun socialLogin(
+        @Body request: SocialLoginRequest,
     ): Response<LoginResponse>
 
     @POST("api/auth/signup")
     suspend fun signup(
-        @Body request: SignupRequest
+        @Body request: SignupRequest,
     ): Response<BaseResponse>
+
+    @POST("api/auth/social-signup")
+    suspend fun socialSignUp(
+        @Body request: SocialSignUpRequest,
+    ): Response<LoginResponse>
 
     @POST("api/auth/refresh/token")
     suspend fun refreshingAccessToken(): Response<RefreshingAccessTokenResponse>
 
     @GET("api/auth/usable-id/{userId}")
     suspend fun checkUsableId(
-        @Path("userId") userId: String
+        @Path("userId") userId: String,
     ): Response<BaseResponse>
 
     @GET("api/auth/user-info")
     suspend fun getUserInfo(): Response<UserInfoResponse>
 
     @POST("api/auth/modify/profile-image")
-    suspend fun modifyProfileImage(): Response<UserInfoResponse>
+    suspend fun modifyProfileImage(): Response<ModifyUserInfoResponse>
+
+    @POST("api/auth/modify/nickname")
+    suspend fun modifyNickname(
+        @Body request: ModifyNicknameRequest,
+    ): Response<ModifyUserInfoResponse>
+
+    @DELETE("api/auth/withdraw")
+    suspend fun withdraw(): Response<BaseResponse>
+
+    @DELETE("api/auth/social-withdraw")
+    suspend fun socialWithdraw(): Response<BaseResponse>
 }

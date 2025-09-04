@@ -46,7 +46,7 @@ class RoomDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.ROOM_CREATE,
                 request = RoomCodeRequest(roomCode = roomCode),
-                responseType = RoomCreateResponse::class
+                responseType = RoomCreateResponse.serializer()
             )
         }
 
@@ -55,7 +55,7 @@ class RoomDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.ROOM_REQUEST_JOIN,
                 request = RoomCodeRequest(roomCode = roomCode),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -71,7 +71,7 @@ class RoomDataSourceImpl @Inject constructor(
                 userId = targetUserId,
                 isApprove = isApprove
             ),
-            responseType = BaseResponse::class
+            responseType = BaseResponse.serializer()
         )
     }
 
@@ -85,7 +85,7 @@ class RoomDataSourceImpl @Inject constructor(
                 roomCode = roomCode,
                 includingMyself = isIncludingMySelf
             ),
-            responseType = RoomMemberResponse::class
+            responseType = RoomMemberResponse.serializer()
         )
     }
 
@@ -99,7 +99,7 @@ class RoomDataSourceImpl @Inject constructor(
                 roomCode = roomCode,
                 isMicrophoneOn = isMicrophoneOn
             ),
-            responseType = BaseResponse::class
+            responseType = BaseResponse.serializer()
         )
     }
 
@@ -113,7 +113,7 @@ class RoomDataSourceImpl @Inject constructor(
                 roomCode = roomCode,
                 isCameraOn = isCameraOn
             ),
-            responseType = BaseResponse::class
+            responseType = BaseResponse.serializer()
         )
     }
 
@@ -121,36 +121,39 @@ class RoomDataSourceImpl @Inject constructor(
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.ROOM_NOTIFY_WAIT,
-            resType = RoomNotifyWaitResponse::class
+            resType = RoomNotifyWaitResponse.serializer()
         )
 
     override suspend fun receiveRoomResultWaiting(): Flow<TogeResult<RoomNotifyWaitingResultResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.ROOM_NOTIFY_DECIDE_JOIN_FROM_HOST,
-            resType = RoomNotifyWaitingResultResponse::class
+            resType = RoomNotifyWaitingResultResponse.serializer()
         )
 
     override suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<RoomNotifyUpdateParticipantResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.ROOM_NOTIFY_UPDATE_PARTICIPANT,
-            resType = RoomNotifyUpdateParticipantResponse::class
+            resType = RoomNotifyUpdateParticipantResponse.serializer()
         )
 
     override suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomNotifyChangingMicStatusResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.CALL_NOTIFY_CHANGE_MIC,
-            resType = RoomNotifyChangingMicStatusResponse::class
+            resType = RoomNotifyChangingMicStatusResponse.serializer()
         )
 
     override suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomNotifyChangingCameraStatusResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.CALL_NOTIFY_CHANGE_CAMERA,
-            resType = RoomNotifyChangingCameraStatusResponse::class
+            resType = RoomNotifyChangingCameraStatusResponse.serializer()
         )
+
+    override suspend fun receiveRoomConnectionState(): Flow<WebSocketConnectionState> =
+        webSocketClient.connectionStateFlow
 
 }
 

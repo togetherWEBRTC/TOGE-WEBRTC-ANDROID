@@ -30,7 +30,6 @@ import example.beechang.together.webrtc.TogeWebRtcManager
 import example.beechang.together.webrtc.WebRtcAction
 import example.beechang.together.webrtc.WebRtcAction.General.*
 import example.beechang.together.webrtc.WebRtcData
-import example.beechang.together.webrtc.di.TogeWebRtcManagerFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -42,7 +41,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CallSignallingViewModel @Inject constructor(
-    private val webRtcManagerFactory: TogeWebRtcManagerFactory,
+    private val webRtcManager: TogeWebRtcManager,
     private val getRoomParticipantUseCase: GetRoomParticipantUseCase,
     private val getUserInfoUseCase: GetUserInfoUseCase,
     private val receiveUpdatingRoomParticipantUseCase: ReceiveUpdatingRoomParticipantUseCase,
@@ -63,7 +62,6 @@ class CallSignallingViewModel @Inject constructor(
     savedStateHandle, CallSignallingState(), CALL_SIGNALLING_STATE
 ) {
 
-    lateinit var webRtcManager: TogeWebRtcManager
 
     private val _webRtcState = MutableStateFlow(WebRtcState())
     val webRtcState: StateFlow<WebRtcState> = _webRtcState
@@ -89,7 +87,7 @@ class CallSignallingViewModel @Inject constructor(
             }
 
             CallSignallingEvent.SwitchCamera -> {
-                webRtcManager.processAction(SwitchCamera(currentState.myUserId))
+                webRtcManager.processActionAsync(SwitchCamera(currentState.myUserId))
             }
 
             CallSignallingEvent.Disconnect -> {
@@ -122,7 +120,7 @@ class CallSignallingViewModel @Inject constructor(
             }
 
             is CallSignallingEvent.ToggleSpeakerMute -> {
-                 toggleSpeakerMute(event.isMuted)
+                toggleSpeakerMute(event.isMuted)
             }
         }
     }
@@ -146,17 +144,18 @@ class CallSignallingViewModel @Inject constructor(
                 listenParticipantsForWebrtcData()
                 sendRtcReady()
                 listeningSignallingEvent()
+                listeningSpeakingStatus()
                 updateDevicePermissionStatus()
             }
         }
     }
 
     private fun startWebRtc(userId: String = "") = viewModelScope.launch {
-        webRtcManager = webRtcManagerFactory.create().apply {
-            processAction(InitWebRtc(if (userId.isNotEmpty()) userId else currentState.myUserId))
+        webRtcManager.apply {
+            processActionAsync(InitWebRtc(if (userId.isNotEmpty()) userId else currentState.myUserId))
 
             if (currentState.isSpeakerMuted) {
-                processAction(
+                processActionAsync(
                     SetSpeakerMute(
                         userId = if (userId.isNotEmpty()) userId else currentState.myUserId,
                         isMuted = true
@@ -189,11 +188,9 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun toggleVideoEnabled(enabled: Boolean) = viewModelScope.launch {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(
-                ToggleVideo(userId = currentState.myUserId, enabled = enabled)
-            )
-        }
+        webRtcManager.processActionAsync(
+            ToggleVideo(userId = currentState.myUserId, enabled = enabled)
+        )
         changeCameraSuatusUseCase.invoke(roomCode = currentState.roomCode, isCameraOn = enabled)
         updateState {
             copy(
@@ -206,11 +203,9 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun toggleAudioEnabled(enabled: Boolean) = viewModelScope.launch {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(
-                ToggleAudio(userId = currentState.myUserId, enabled = enabled)
-            )
-        }
+        webRtcManager.processActionAsync(
+            ToggleAudio(userId = currentState.myUserId, enabled = enabled)
+        )
         changeMicStatusUseCase.invoke(roomCode = currentState.roomCode, isMicOn = enabled)
         updateState {
             copy(
@@ -223,23 +218,17 @@ class CallSignallingViewModel @Inject constructor(
     }
 
     private fun refreshVideoData() {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(RefreshVideo(currentState.myUserId))
-        }
+        webRtcManager.processActionAsync(RefreshVideo(currentState.myUserId))
     }
 
     private fun refreshAudioData() {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(RefreshAudio(currentState.myUserId))
-        }
+        webRtcManager.processActionAsync(RefreshAudio(currentState.myUserId))
     }
 
     private fun toggleSpeakerMute(isMuted: Boolean) = viewModelScope.launch {
-        if (::webRtcManager.isInitialized) {
-            webRtcManager.processAction(
-                SetSpeakerMute(userId = currentState.myUserId, isMuted = isMuted)
-            )
-        }
+        webRtcManager.processActionAsync(
+            SetSpeakerMute(userId = currentState.myUserId, isMuted = isMuted)
+        )
 
         updateState { copy(isSpeakerMuted = isMuted) }
     }
@@ -281,7 +270,7 @@ class CallSignallingViewModel @Inject constructor(
                     }
 
                     if (!isJoined) { //remove webrtc user
-                        webRtcManager.processAction(RemoveParticipant(userId))
+                        webRtcManager.processActionAsync(RemoveParticipant(userId))
                     }
 
                     sendEffect(
@@ -294,13 +283,28 @@ class CallSignallingViewModel @Inject constructor(
             )
     }
 
+    private fun listeningSpeakingStatus() = viewModelScope.launch {
+        webRtcManager.speakingStatusFlow
+            .collect { speakingStatusMap ->
+                updateState {
+                    val newParticipants = LinkedHashMap(participants)
+                    speakingStatusMap.forEach { (userId, isSpeaking) ->
+                        newParticipants[userId] =
+                            newParticipants[userId]?.copy(isSpeaking = isSpeaking)
+                    }
+                    copy(participants = newParticipants)
+                }
+            }
+    }
+
     private fun sendRtcReady() = viewModelScope.launch {
         val roomCode = currentState.roomCode
         currentState.participants.forEach {
             if (it.value.userId != currentState.myUserId) {
                 webRtcManager.processAction(
                     CreatePeerConnection(
-                        userId = it.value.userId,
+                        localUserId = currentState.myUserId,
+                        remoteUserId = it.value.userId,
                         role = PeerConnectionRole.Answerer
                     )
                 )
@@ -318,9 +322,10 @@ class CallSignallingViewModel @Inject constructor(
             .collectInViewModel(
                 onSuccess = { res ->
                     viewModelScope.launch {
-                        webRtcManager.processAction(
+                        webRtcManager.processActionAsync(
                             CreatePeerConnection(
-                                userId = res.userId,
+                                localUserId = currentState.myUserId,
+                                remoteUserId = res.userId,
                                 role = PeerConnectionRole.Offerer
                             )
                         )
@@ -333,7 +338,7 @@ class CallSignallingViewModel @Inject constructor(
         receiveOfferUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    webRtcManager.processAction(
+                    webRtcManager.processActionAsync(
                         WebRtcAction.Signaling.SetOfferDescription(
                             userId = res.fromUserId,
                             sdp = res.sdp
@@ -347,7 +352,7 @@ class CallSignallingViewModel @Inject constructor(
         receiveAnswerUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    webRtcManager.processAction(
+                    webRtcManager.processActionAsync(
                         WebRtcAction.Signaling.SetAnswerDescription(
                             userId = res.fromUserId,
                             sdp = res.sdp
@@ -361,7 +366,7 @@ class CallSignallingViewModel @Inject constructor(
         receiveIceCandidateUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    webRtcManager.processAction(
+                    webRtcManager.processActionAsync(
                         WebRtcAction.Signaling.SetIceCandidate(
                             userId = res.fromUserId,
                             sdp = res.candidate,
@@ -460,7 +465,9 @@ data class CallSignallingState(
     val isEnabledMic: Boolean = true,
     val isSpeakerMuted: Boolean = false,
     val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf()
-) : Parcelable, UiState
+) : Parcelable, UiState {
+    fun toParticipantList() = participants.values.toList()
+}
 
 sealed interface CallSignallingEvent : UiEvent {
     data class UpdatedRoomCode(val roomCode: String) : CallSignallingEvent

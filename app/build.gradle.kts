@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.android.junit5)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -51,28 +52,43 @@ android {
         )
     }
 
+    signingConfigs {
+        create("release") {
+            val storeFilePath = getLocalProperties("MY_STORE_FILE")
+            if (storeFilePath.isNotEmpty()) {
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = getLocalProperties("MY_STORE_PASSWORD")
+                keyAlias = getLocalProperties("MY_KEY_ALIAS")
+                keyPassword = getLocalProperties("MY_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "TOGE_WRTC_DEV")
+            resValue("string", "app_name", "TOGE_DEV")
             buildConfigField("String", "LOCAL_PREF", "\"toge_pref\"")
             buildConfigField("String", "API_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "RES_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "WEBSOCKET_URL", "\"${getLocalProperties("LOCAL_WEBSOCK_URL")}\"")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${getLocalProperties("GOOGLE_CLIENT_ID")}\"")
         }
 
         release {
-            resValue("string", "app_name", "TOGE_WRTC")
+            resValue("string", "app_name", "TOGE")
             isMinifyEnabled = false
             buildConfigField("String", "LOCAL_PREF", "\"toge_pref\"")
             buildConfigField("String", "API_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "RES_URL", "\"${getLocalProperties("LOCAL_API_URL")}\"")
             buildConfigField("String", "WEBSOCKET_URL", "\"${getLocalProperties("LOCAL_WEBSOCK_URL")}\"")
+            buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${getLocalProperties("GOOGLE_CLIENT_ID")}\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -150,12 +166,16 @@ dependencies {
     implementation(libs.datastore)
 
     //  Socketio
-    implementation("io.socket:socket.io-client:2.0.0") {
-        exclude(group = "org.json", module = "json")
+    implementation(libs.socketio) {
+        exclude(group = libs.versions.exclude.org.json.group.get(), module = libs.versions.exclude.org.json.module.get())
     }
 
     //  WebRTC
-    implementation(files("$rootDir/libs/libwebrtc.jar"))
+    implementation(files("$rootDir/${libs.versions.webrtcJarPath.get()}"))
+
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 
     //  Test
     testImplementation(libs.junit.jupiter.api)
@@ -164,4 +184,8 @@ dependencies {
     testImplementation(libs.mockk.agent)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    //  FIREBASE
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
 }

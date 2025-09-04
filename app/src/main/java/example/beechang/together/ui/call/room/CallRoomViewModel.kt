@@ -8,6 +8,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.usecase.room.CreateRoomUseCase
 import example.beechang.together.domain.usecase.room.DecideWaitingEnterFromHostUseCase
 import example.beechang.together.domain.usecase.room.DisconnectRoomUseCase
+import example.beechang.together.domain.usecase.room.ReceiveRoomDisconnectedUseCase
 import example.beechang.together.domain.usecase.room.ReceiveWaitingNotifyUseCase
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
@@ -23,6 +24,7 @@ class CallRoomViewModel @Inject constructor(
     private val disconnectRoomUseCase: DisconnectRoomUseCase,
     private val decideWaitingMemberEnterRoomUseCase: DecideWaitingEnterFromHostUseCase,
     private val receiveWaitingNotifyUseCase: ReceiveWaitingNotifyUseCase,
+    private val receiveRoomDisconnectedUseCase: ReceiveRoomDisconnectedUseCase,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<CallRoomState, CallRoomEvent, CallRoomEffect>(
     savedStateHandle, CallRoomState(), CALL_ROOM_STATE
@@ -36,6 +38,7 @@ class CallRoomViewModel @Inject constructor(
         }
 
         listeningWaitingNotify()
+        listeningRoomConnectionState()
     }
 
     override fun onEvent(event: CallRoomEvent) {
@@ -54,18 +57,6 @@ class CallRoomViewModel @Inject constructor(
                     userId = event.userId,
                     isApprove = event.isApprove
                 )
-            }
-
-            CallRoomEvent.SwitchShowDialogForWrongRoomCode -> {
-                updateState { copy(isShowDialogForWrongRoomCode = !currentState.isShowDialogForWrongRoomCode) }
-            }
-
-            CallRoomEvent.SwitchShowDisconnectRoomDialog -> {
-                updateState { copy(isShowDialogDisconnectRoom = !currentState.isShowDialogDisconnectRoom) }
-            }
-
-            CallRoomEvent.SwitchShowDialogPermission -> {
-                updateState { copy(isShowDialogPermission = !currentState.isShowDialogPermission) }
             }
 
         }
@@ -120,6 +111,13 @@ class CallRoomViewModel @Inject constructor(
             )
     }
 
+    private fun listeningRoomConnectionState() = viewModelScope.launch {
+        receiveRoomDisconnectedUseCase.invoke()
+            .collect {
+                sendError(TogeError.FailedToConnectRoom)
+            }
+    }
+
 
     companion object {
         const val CALL_ROOM_STATE = "call_room_state"
@@ -131,10 +129,7 @@ data class CallRoomState(
     val isLoading: Boolean = false,
     val roomCode: String = "",
     val isHost: Boolean = false,
-    val waitingParticipants: List<RoomParticipantUi> = emptyList(),
-    val isShowDialogForWrongRoomCode: Boolean = false,
-    val isShowDialogDisconnectRoom: Boolean = false,
-    val isShowDialogPermission: Boolean = false
+    val waitingParticipants: List<RoomParticipantUi> = emptyList()
 ) : Parcelable, UiState
 
 sealed interface CallRoomEvent : UiEvent {
@@ -144,10 +139,6 @@ sealed interface CallRoomEvent : UiEvent {
         val userId: String,
         val isApprove: Boolean
     ) : CallRoomEvent // 웨이팅 승인 및 거절 요청
-
-    object SwitchShowDialogForWrongRoomCode : CallRoomEvent
-    object SwitchShowDisconnectRoomDialog : CallRoomEvent
-    object SwitchShowDialogPermission : CallRoomEvent
 }
 
 sealed interface CallRoomEffect : UiEffect {

@@ -11,11 +11,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
+import kotlinx.serialization.KSerializer
 import retrofit2.Response
-import kotlin.reflect.KClass
 
 fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
     return when (code) {
@@ -28,6 +26,13 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
         1003 -> TogeError.FailedLogin
         1004 -> TogeError.DuplicatedId
         1005 -> TogeError.PasswordNotMatch
+        1006 -> TogeError.UserNotFoundOrDeleted
+        1007 -> TogeError.FailSocialLoginInvalidInfo
+        1008 -> TogeError.FailSocialLogin
+        1009 -> TogeError.InvalidSocialSignupToken
+        1011 -> TogeError.NeedToAgreeTerms
+        1012 -> TogeError.FailWithdrawMember
+        1013 -> TogeError.FailModifyNickname
 
         10001 -> TogeError.AlreadyJoinedRoom
         10002 -> TogeError.RoomNotFound
@@ -71,7 +76,7 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
  * @return TogeResult<T> API 호출 결과를 래핑한 객체
  */
 suspend fun <T : TogeResponse> apiToResult(
-    call: suspend () -> Response<T>
+    call: suspend () -> Response<T>,
 ): TogeResult<T> = try {
     val response = call()
 
@@ -105,9 +110,52 @@ suspend fun <T : TogeResponse> apiToResult(
     )
 }
 
+/**
+ * [사용 전]
+ * ```
+ * val result = apiToResult { apiService.getData(id) }
+ * val transformedResult = when (result) {
+ *     is TogeResult.Success -> {
+ *         if (result.data.toSuccessBoolean()) {
+ *             TogeResult.Success(transformData(result.data))
+ *         } else {
+ *             TogeResult.Error(togeError = CustomError.DataProcessingError)
+ *         }
+ *     }
+ *     is TogeResult.Error -> {
+ *         TogeResult.Error(togeError = CustomError.DataProcessingError)
+ *     }
+ * }
+ * ```
+ *
+ * [사용 후]
+ * ```
+ * val transformedResult = apiToResult { apiService.getData(id) }
+ *     .mapSuccessOrProvideError(CustomError.DataProcessingError) { transformData(it) }
+ * ```
+ */
+fun <T : TogeResponse, R> TogeResult<T>.mapSuccessOrProvideError(
+    errorType: TogeError,
+    transform: (T) -> R,
+): TogeResult<R> {
+    return when (this) {
+        is TogeResult.Success -> {
+            if (data.toSuccessBoolean()) {
+                TogeResult.Success(transform(data))
+            } else {
+                TogeResult.Error(togeError = errorType)
+            }
+        }
+
+        is TogeResult.Error -> {
+            TogeResult.Error(togeError = errorType)
+        }
+    }
+}
+
 
 suspend fun <T : TogeResponse> togeToResult(
-    result: suspend () -> TogeResult<T>
+    result: suspend () -> TogeResult<T>,
 ): TogeResult<T> = try {
     val response = result()
     when (response) {
@@ -143,18 +191,17 @@ val json = Json {
     encodeDefaults = true
 }
 
-@OptIn(InternalSerializationApi::class)
 fun <T : Any> socketEventToResultFlow(
     webSocketClient: WebSocketClient,
     eventName: String,
-    resType: KClass<T>
+    resType: KSerializer<T>,
 ): Flow<TogeResult<T>> {
     return webSocketClient.eventFlow
         .filter { it.event == eventName }
         .map { response ->
             try {
                 response.jsonData?.let { jsonData ->
-                    val parsedResponse = json.decodeFromString(resType.serializer(), jsonData)
+                    val parsedResponse = json.decodeFromString(resType, jsonData)
                     TogeResult.Success(parsedResponse)
                 } ?: TogeResult.Error(
                     togeError = TogeError.DataError(msg = "Response body is null"),

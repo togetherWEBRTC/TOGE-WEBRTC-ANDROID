@@ -8,20 +8,25 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import io.socket.client.Ack
 import io.socket.client.IO
+import io.socket.client.Manager
 import io.socket.client.Socket
-import io.socket.emitter.Emitter
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.json.JSONObject
@@ -29,8 +34,8 @@ import java.net.SocketTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.reflect.KClass
 
 
 @Singleton
@@ -38,12 +43,20 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
 
     private var socket: Socket? = null
 
-    override var isConnected = false
+    override var isConnected: Boolean = false
+        get() = _connectionStateFlow.value == WebSocketConnectionState.CONNECTED
 
     private var currentToken: String? = null
 
-    private val _eventFlow = MutableSharedFlow<WebSocketEventResponse>()
+    private val _eventFlow = MutableSharedFlow<WebSocketEventResponse>(
+        replay = 0,
+        extraBufferCapacity = 32,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     override val eventFlow: SharedFlow<WebSocketEventResponse> = _eventFlow
+
+    private val _connectionStateFlow = MutableStateFlow(WebSocketConnectionState.PENDING)
+    override val connectionStateFlow: Flow<WebSocketConnectionState> = _connectionStateFlow
 
     private val job = SupervisorJob()
     override val coroutineContext: CoroutineContext = job + Dispatchers.IO
@@ -63,21 +76,18 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             }
 
             initializeSocket(token)
-
             val socket = socket ?: return false
-            val resultDeferred = async { getConnectionResult() }
-            socket.connect()
 
-            val result = resultDeferred.await().isSuccess
-            isConnected = result
-
-            if (result) {
-                socket.off()
+            val isSuccessSocketConnection = async { isSuccessSocketConnection() }
+            launch {
+                setSocketConnectionState()
                 listeningEvent()
             }
-            return result
+            socket.connect()
+
+            return isSuccessSocketConnection.await()
         } catch (e: Exception) {
-            isConnected = false
+            _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             Log.e("SocketIOWebSocketClient", "Error connecting socket: ${e.message}")
             e.printStackTrace()
             return false
@@ -88,54 +98,23 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         return try {
             socket?.let {
                 if (isConnected) {
-                    val disconnectDeferred = async { getResultEventDisconnect() }
                     it.disconnect()
-                    val result = disconnectDeferred.await()
-                    it.off()
-                    isConnected = false
-                    result
-                } else {
-                    true
                 }
-            } ?: run {
-                true
+                clearSocketIoEvent()
+                _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             }
+            true
         } catch (e: Exception) {
-            isConnected = false
+            _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
             Log.e("SocketIOWebSocketClient", "Error disconnecting socket: ${e.message}")
             e.printStackTrace()
             false
         }
     }
 
-    private fun listeningEvent() {
-        socket?.let { socket ->
-            SocketEventConstants.INCOMING_EVENTS.forEach { eventName ->
-                socket.on(eventName) { args ->
-                    launch {
-                        val data = args.firstOrNull()
-                        val jsonData = when {
-                            data == null -> null
-                            data is String && data.startsWith("{") -> data
-                            else -> {
-                                try {
-                                    JSONObject(data.toString()).toString()
-                                } catch (e: Exception) {
-                                    """{"data":"${data.toString().replace("\"", "\\\"")}"}"""
-                                }
-                            }
-                        }
-                        Log.d("SocketIOWebSocketClient", "Event: $eventName, Data: $jsonData")
-                        _eventFlow.emit(WebSocketEventResponse(eventName, jsonData))
-                    }
-                }
-            }
-        }
-    }
-
     override suspend fun <RESP : Any> emitWithAck(
         event: String,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP> {
         return emitWithAck(event, Unit, responseType)
     }
@@ -143,7 +122,7 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
     override suspend fun <REQ : Any, RESP : Any> emitWithAck(
         event: String,
         request: REQ,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): TogeResult<RESP> {
         if (!isConnected || socket == null) {
             val msg = "Need to connect socket first"
@@ -194,10 +173,9 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         throw SocketTimeoutException("Socket timeout after ${timeoutMs}ms")
     }
 
-    @OptIn(InternalSerializationApi::class)
     private fun <RESP : Any> parseAckResponse(
         args: Array<Any?>,
-        responseType: KClass<RESP>
+        responseType: KSerializer<RESP>
     ): RESP {
         val raw = args.firstOrNull()
         val jsonObj = when (raw) {
@@ -205,70 +183,7 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             is String -> JSONObject(raw)
             else -> throw IllegalArgumentException("Invalid response format: ${args.contentToString()}")
         }
-        return json.decodeFromString(responseType.serializer(), jsonObj.toString())
-    }
-
-
-    private suspend fun getResultEventDisconnect(): Boolean {
-        val deferred = CompletableDeferred<Boolean>()
-        var listenerRef: Emitter.Listener? = null
-        val listener = Emitter.Listener {
-            deferred.complete(true)
-            socket?.off(Socket.EVENT_DISCONNECT, listenerRef)
-        }
-        listenerRef = listener
-        socket?.on(Socket.EVENT_DISCONNECT, listener)
-        return deferred.await()
-    }
-
-    private suspend fun getConnectionResult(): Result<Boolean> {
-        val deferred = CompletableDeferred<Result<Boolean>>()
-
-        var connectListenerRef: Emitter.Listener? = null
-        var authErrorListenerRef: Emitter.Listener? = null
-        var connectErrorListenerRef: Emitter.Listener? = null
-
-        fun cleanupAllListeners() {
-            socket?.apply {
-                connectListenerRef?.let { off(Socket.EVENT_CONNECT, it) }
-                authErrorListenerRef?.let { off(SocketEventConstants.AUTH_ERROR, it) }
-                connectErrorListenerRef?.let { off(Socket.EVENT_CONNECT_ERROR, it) }
-            }
-        }
-
-        val connectListener = Emitter.Listener { _ ->
-            isConnected = true
-            cleanupAllListeners()
-            deferred.complete(Result.success(true))
-        }
-
-        connectListenerRef = connectListener
-        val authErrorListener = Emitter.Listener { args ->
-            val error = args.firstOrNull()?.toString() ?: "Unknown auth error"
-            cleanupAllListeners()
-            deferred.complete(Result.failure(Exception("Authentication error: $error")))
-        }
-        authErrorListenerRef = authErrorListener
-
-        val connectErrorListener = Emitter.Listener { args ->
-            val error = args.firstOrNull()?.toString() ?: "Unknown connection error"
-            cleanupAllListeners()
-            deferred.complete(Result.failure(Exception("Connection error: $error")))
-        }
-        connectErrorListenerRef = connectErrorListener
-
-        socket?.apply {
-            on(Socket.EVENT_CONNECT, connectListener)
-            on(SocketEventConstants.AUTH_ERROR, authErrorListener)
-            on(Socket.EVENT_CONNECT_ERROR, connectErrorListener)
-        }
-
-        try {
-            return deferred.await()
-        } catch (e: Exception) {
-            cleanupAllListeners()
-            throw e
-        }
+        return json.decodeFromString(responseType, jsonObj.toString())
     }
 
     private fun initializeSocket(token: String) {
@@ -276,14 +191,95 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
             val options = IO.Options().apply {
                 auth = mapOf("accessToken" to token)
                 reconnection = true
-                reconnectionDelay = 1000
-                reconnectionAttempts = 3
+                randomizationFactor = RANDOMIZATION_FACTOR
+                reconnectionDelay = RECONNECTION_DELAY
+                reconnectionAttempts = RECONNECTION_ATTEMPTS
             }
-            socket?.off()
+            clearSocketIoEvent()
             socket = IO.socket(BuildConfig.WEBSOCKET_URL, options)
             currentToken = token
         } catch (e: Exception) {
             throw e
         }
+    }
+
+    private fun clearSocketIoEvent(){
+        socket?.let {
+            it.off()
+            it.io().off()
+        }
+    }
+
+    private suspend fun isSuccessSocketConnection(): Boolean = suspendCancellableCoroutine { cont ->
+        socket?.let {
+            it.run {
+                on(Socket.EVENT_CONNECT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                    if (cont.isActive) cont.resume(true)
+                }
+                on(Socket.EVENT_CONNECT_ERROR) {
+                    _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                    if (cont.isActive) cont.resume(false)
+                }
+                on(Socket.EVENT_DISCONNECT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.DISCONNECTED }
+                    if (cont.isActive) cont.resume(false)
+                }
+            }
+        }
+    }
+
+    private fun setSocketConnectionState() {
+        socket?.let {
+            it.run {
+                io().on(Manager.EVENT_RECONNECT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.RECONNECTED }
+                    launch {
+                        delay(10)
+                        _connectionStateFlow.update { WebSocketConnectionState.CONNECTED }
+                    }
+                }
+                io().on(Manager.EVENT_RECONNECT_ATTEMPT) {
+                    _connectionStateFlow.update { WebSocketConnectionState.RECONNECTING }
+                }
+                io().on(Manager.EVENT_RECONNECT_FAILED) {
+                    launch { this@SocketIOWebSocketClient.disconnect() }
+                    _connectionStateFlow.update { WebSocketConnectionState.FAILED_RECONNECT }
+                }
+            }
+        }
+    }
+
+    private fun listeningEvent() {
+        socket?.let { socket ->
+            SocketEventConstants.INCOMING_EVENTS.forEach { eventName ->
+                socket.on(eventName) { args ->
+                    launch {
+                        val data = args.firstOrNull()
+                        val jsonData = when {
+                            data == null -> null
+                            data is String && data.startsWith("{") -> data
+                            else -> {
+                                try {
+                                    JSONObject(data.toString()).toString()
+                                } catch (e: Exception) {
+                                    """{"data":"${data.toString().replace("\"", "\\\"")}"}"""
+                                }
+                            }
+                        }
+                        Log.d("SocketIOWebSocketClient", "Event: $eventName, Data: $jsonData")
+                        _eventFlow.emit(WebSocketEventResponse(eventName, jsonData))
+                    }
+                }
+            }
+        }
+    }
+
+    companion object {
+        // 서버 20초 ~ 45초 reconnection 대기
+        // reconnect 350~650ms / 700~1300ms / 1400~2600ms / 2800~5200ms / 5600~10400ms / 11200~20800ms / 22400~41600ms
+        const val RANDOMIZATION_FACTOR = 0.2
+        const val RECONNECTION_DELAY = 400L
+        const val RECONNECTION_ATTEMPTS = 7
     }
 }

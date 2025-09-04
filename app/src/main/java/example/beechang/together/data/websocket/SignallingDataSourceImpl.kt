@@ -23,7 +23,7 @@ class SignallingDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.RTC_READY,
                 request = RoomCodeRequest(roomCode = roomCode),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -36,7 +36,7 @@ class SignallingDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.SIGNAL_SEND_OFFER,
                 request = RoomSendSdpRequest(roomCode = roomCode, toUserId = toUserId, sdp = sdp),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -49,7 +49,7 @@ class SignallingDataSourceImpl @Inject constructor(
             webSocketClient.emitWithAck(
                 event = SocketEventConstants.SIGNAL_SEND_ANSWER,
                 request = RoomSendSdpRequest(roomCode = roomCode, toUserId = toUserId, sdp = sdp),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -70,7 +70,7 @@ class SignallingDataSourceImpl @Inject constructor(
                     sdpMid = sdpMid,
                     sdpMLineIndex = sdpMLineIndex
                 ),
-                responseType = BaseResponse::class
+                responseType = BaseResponse.serializer()
             )
         }
 
@@ -78,27 +78,27 @@ class SignallingDataSourceImpl @Inject constructor(
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.RTC_READY,
-            resType = RoomUserIdResponse::class
+            resType = RoomUserIdResponse.serializer()
         )
 
     override suspend fun receiveOffer(): Flow<TogeResult<RoomSdpResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.SIGNAL_NOTIFY_OFFER,
-            resType = RoomSdpResponse::class
+            resType = RoomSdpResponse.serializer()
         )
 
     override suspend fun receiveAnswer(): Flow<TogeResult<RoomSdpResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.SIGNAL_NOTIFY_ANSWER,
-            resType = RoomSdpResponse::class
+            resType = RoomSdpResponse.serializer()
         )
 
     override suspend fun receiveIceCandidate(): Flow<TogeResult<RoomIceCandidateResponse>> =
         socketEventToResultFlow(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.SIGNAL_NOTIFY_ICE,
-            resType = RoomIceCandidateResponse::class
+            resType = RoomIceCandidateResponse.serializer()
         )
 }

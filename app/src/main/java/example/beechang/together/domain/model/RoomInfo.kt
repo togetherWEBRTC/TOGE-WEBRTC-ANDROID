@@ -42,3 +42,12 @@ data class UpdatedRoomParticipant(
     val updatedUser: UserInfo,
     val isJoined: Boolean = false
 )
+
+enum class RoomConnectionState {
+    CONNECTED,
+    DISCONNECTED,
+    RECONNECTING,
+    RECONNECTED,
+    FAILED_RECONNECT,
+    PENDING
+}

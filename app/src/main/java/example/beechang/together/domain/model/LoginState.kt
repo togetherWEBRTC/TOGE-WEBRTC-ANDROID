@@ -16,3 +16,13 @@ enum class LoginState {
         }
     }
 }
+
+enum class SocialLoginType {
+    GOOGLE
+}
+
+data class SocialLoginResult(
+    val isSuccess: Boolean,
+    val isNeedAdditionalInfo : Boolean,
+    val socialInfoToken : String
+)
