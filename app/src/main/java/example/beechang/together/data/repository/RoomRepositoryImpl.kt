@@ -111,6 +111,11 @@ class RoomRepositoryImpl @Inject constructor(
             .mapToge { it.toParticipant() }
     }
 
+    override suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>> {
+        return roomDataSource.receiveRoomNotifyBeExpelledFromHost()
+            .mapToge { true }
+    }
+
     override suspend fun receiveRoomConnectionState(): Flow<RoomConnectionState> =
         roomDataSource.receiveRoomConnectionState().map {
             when (it) {

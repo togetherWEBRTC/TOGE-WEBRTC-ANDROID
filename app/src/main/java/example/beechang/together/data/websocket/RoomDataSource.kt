@@ -3,6 +3,7 @@ package example.beechang.together.data.websocket
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.RoomCreateResponse
 import example.beechang.together.data.response.RoomMemberResponse
+import example.beechang.together.data.response.RoomNotifyBasicResponse
 import example.beechang.together.data.response.RoomNotifyChangingCameraStatusResponse
 import example.beechang.together.data.response.RoomNotifyChangingMicStatusResponse
 import example.beechang.together.data.response.RoomNotifyUpdateParticipantResponse
@@ -40,5 +41,6 @@ interface RoomDataSource {
     suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<RoomNotifyUpdateParticipantResponse>>
     suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomNotifyChangingMicStatusResponse>>
     suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomNotifyChangingCameraStatusResponse>>
+    suspend fun receiveRoomNotifyBeExpelledFromHost(): Flow<TogeResult<RoomNotifyBasicResponse>>
     suspend fun receiveRoomConnectionState(): Flow<WebSocketConnectionState>
 }

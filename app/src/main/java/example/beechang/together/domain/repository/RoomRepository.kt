@@ -33,5 +33,6 @@ interface RoomRepository {
     suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<UpdatedRoomParticipant>>
     suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomParticipant>>
     suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomParticipant>>
+    suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>>
     suspend fun receiveRoomConnectionState(): Flow<RoomConnectionState>
 }
