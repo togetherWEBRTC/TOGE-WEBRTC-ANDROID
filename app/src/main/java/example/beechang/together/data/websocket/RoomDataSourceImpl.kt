@@ -1,5 +1,6 @@
 package example.beechang.together.data.websocket
 
+import example.beechang.together.data.request.RoomBasicMemberRequest
 import example.beechang.together.data.request.RoomChangeCameraRequest
 import example.beechang.together.data.request.RoomChangeMicRequest
 import example.beechang.together.data.request.RoomCodeRequest
@@ -86,6 +87,20 @@ class RoomDataSourceImpl @Inject constructor(
                 includingMyself = isIncludingMySelf
             ),
             responseType = RoomMemberResponse.serializer()
+        )
+    }
+
+    override suspend fun expelMemberFromRoom(
+        roomCode: String,
+        targetUserId: String
+    ): TogeResult<BaseResponse> = togeToResult {
+        webSocketClient.emitWithAck(
+            event = SocketEventConstants.ROOM_MEMBER_EXPEL,
+            request = RoomBasicMemberRequest(
+                roomCode = roomCode,
+                userId = targetUserId
+            ),
+            responseType = BaseResponse.serializer()
         )
     }
 

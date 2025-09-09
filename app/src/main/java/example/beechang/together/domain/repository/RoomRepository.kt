@@ -23,6 +23,7 @@ interface RoomRepository {
         roomCode: String,
         isIncludingMySelf: Boolean
     ): TogeResult<List<RoomParticipant>>
+    suspend fun expelMemberFromRoom(roomCode: String, targetUserId: String): TogeResult<Boolean>
 
     suspend fun changeMicStatus(roomCode: String, isMicrophoneOn: Boolean): TogeResult<Boolean>
     suspend fun changeCameraStatus(roomCode: String, isCameraOn: Boolean): TogeResult<Boolean>

@@ -22,7 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class RoomRepositoryImpl @Inject constructor(
     private val roomDataSource: RoomDataSource,
-    private val localPreference: LocalPreference
+    private val localPreference: LocalPreference,
 ) : RoomRepository {
 
     override suspend fun connect(): TogeResult<Boolean> =
@@ -44,7 +44,7 @@ class RoomRepositoryImpl @Inject constructor(
     override suspend fun requestDecisionWaitingEnter(
         roomCode: String,
         targetUserId: String,
-        isApprove: Boolean
+        isApprove: Boolean,
     ): TogeResult<Boolean> =
         roomDataSource.requestDecisionWaitingEnter(
             roomCode = roomCode,
@@ -54,16 +54,23 @@ class RoomRepositoryImpl @Inject constructor(
 
     override suspend fun getRoomParticipant(
         roomCode: String,
-        isIncludingMySelf: Boolean
+        isIncludingMySelf: Boolean,
     ): TogeResult<List<RoomParticipant>> =
         roomDataSource.getRoomParticipant(
             roomCode = roomCode,
             isIncludingMySelf = isIncludingMySelf
         ).map { it.toRoomParticipant() }
 
+    override suspend fun expelMemberFromRoom(
+        roomCode: String,
+        targetUserId: String,
+    ): TogeResult<Boolean> =
+        roomDataSource.expelMemberFromRoom(roomCode = roomCode, targetUserId = targetUserId)
+            .map { it.toSuccessBoolean() }
+
     override suspend fun changeMicStatus(
         roomCode: String,
-        isMicrophoneOn: Boolean
+        isMicrophoneOn: Boolean,
     ): TogeResult<Boolean> =
         roomDataSource.changeMicStatus(
             roomCode = roomCode,
@@ -72,7 +79,7 @@ class RoomRepositoryImpl @Inject constructor(
 
     override suspend fun changeCameraStatus(
         roomCode: String,
-        isCameraOn: Boolean
+        isCameraOn: Boolean,
     ): TogeResult<Boolean> =
         roomDataSource.changeCameraStatus(
             roomCode = roomCode,

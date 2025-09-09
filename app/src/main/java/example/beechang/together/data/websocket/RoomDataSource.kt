@@ -19,13 +19,18 @@ interface RoomDataSource {
     suspend fun requestDecisionWaitingEnter(
         roomCode: String,
         targetUserId: String,
-        isApprove: Boolean
+        isApprove: Boolean,
     ): TogeResult<BaseResponse>
 
     suspend fun getRoomParticipant(
         roomCode: String,
-        isIncludingMySelf: Boolean
+        isIncludingMySelf: Boolean,
     ): TogeResult<RoomMemberResponse>
+
+    suspend fun expelMemberFromRoom(
+        roomCode: String,
+        targetUserId: String,
+    ): TogeResult<BaseResponse>
 
     suspend fun changeMicStatus(roomCode: String, isMicrophoneOn: Boolean): TogeResult<BaseResponse>
     suspend fun changeCameraStatus(roomCode: String, isCameraOn: Boolean): TogeResult<BaseResponse>
