@@ -125,6 +125,6 @@
     <string name="exclude_participant_title">참여자 제외</string>
     <string name="confirm_exclude_participant_message">\'%s\' 님을 통화에서 제외하시겠습니까?</string>
     <string name="action_exclude_participant">제외</string>
-    <string name="notification_excluded_by_host">주최자에 의해 통화에서 제외되었습니다.</string>
+    <string name="notification_excluded_by_host">호스트에 의해 통화에서 제외되었습니다.</string>
     <string name="success_excluded_member">상대방이 통화에서 제외되었습니다.</string>
 </resources>
