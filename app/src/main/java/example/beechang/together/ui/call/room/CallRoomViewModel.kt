@@ -8,6 +8,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.usecase.room.CreateRoomUseCase
 import example.beechang.together.domain.usecase.room.DecideWaitingEnterFromHostUseCase
 import example.beechang.together.domain.usecase.room.DisconnectRoomUseCase
+import example.beechang.together.domain.usecase.room.ExpelMemberUseCase
 import example.beechang.together.domain.usecase.room.ReceiveRoomDisconnectedUseCase
 import example.beechang.together.domain.usecase.room.ReceiveWaitingNotifyUseCase
 import example.beechang.together.ui.utils.BaseViewModel
@@ -25,7 +26,8 @@ class CallRoomViewModel @Inject constructor(
     private val decideWaitingMemberEnterRoomUseCase: DecideWaitingEnterFromHostUseCase,
     private val receiveWaitingNotifyUseCase: ReceiveWaitingNotifyUseCase,
     private val receiveRoomDisconnectedUseCase: ReceiveRoomDisconnectedUseCase,
-    savedStateHandle: SavedStateHandle
+    private val expelMemberUseCase: ExpelMemberUseCase,
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallRoomState, CallRoomEvent, CallRoomEffect>(
     savedStateHandle, CallRoomState(), CALL_ROOM_STATE
 ) {
@@ -59,6 +61,9 @@ class CallRoomViewModel @Inject constructor(
                 )
             }
 
+            is CallRoomEvent.ExpelMember -> {
+                expelMember(targetMemberId = event.targetMemberId)
+            }
         }
     }
 
@@ -88,6 +93,16 @@ class CallRoomViewModel @Inject constructor(
             onStart = { updateState { copy(isLoading = true) } },
             action = { decideWaitingMemberEnterRoomUseCase(roomCode, userId, isApprove) },
             onSuccess = {},
+            onFinally = { updateState { copy(isLoading = false) } }
+        )
+
+    private fun expelMember(targetMemberId: String) =
+        handleEvent(
+            onStart = { updateState { copy(isLoading = true) } },
+            action = { expelMemberUseCase(currentState.roomCode, targetMemberId) },
+            onSuccess = {
+                sendEffect(CallRoomEffect.SuccessExpelMember)
+            },
             onFinally = { updateState { copy(isLoading = false) } }
         )
 
@@ -129,7 +144,7 @@ data class CallRoomState(
     val isLoading: Boolean = false,
     val roomCode: String = "",
     val isHost: Boolean = false,
-    val waitingParticipants: List<RoomParticipantUi> = emptyList()
+    val waitingParticipants: List<RoomParticipantUi> = emptyList(),
 ) : Parcelable, UiState
 
 sealed interface CallRoomEvent : UiEvent {
@@ -137,8 +152,10 @@ sealed interface CallRoomEvent : UiEvent {
     data class CreateCallRoom(val roomCode: String) : CallRoomEvent //통화방생성
     data class DecideWaitingApproval(
         val userId: String,
-        val isApprove: Boolean
+        val isApprove: Boolean,
     ) : CallRoomEvent // 웨이팅 승인 및 거절 요청
+
+    data class ExpelMember(val targetMemberId: String) : CallRoomEvent
 }
 
 sealed interface CallRoomEffect : UiEffect {
@@ -147,4 +164,5 @@ sealed interface CallRoomEffect : UiEffect {
         CallRoomEffect // 새 웨이팅 추가 알림 수신
 
     object SuccessDisconnectRoom : CallRoomEffect
+    object SuccessExpelMember : CallRoomEffect
 }

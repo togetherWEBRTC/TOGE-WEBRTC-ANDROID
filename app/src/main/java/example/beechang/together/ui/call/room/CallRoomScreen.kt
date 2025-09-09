@@ -68,6 +68,8 @@ fun CallRoomRouter(
     var isShowDialogDisconnectRoom by remember { mutableStateOf(false) }
     var isShowDialogPermission by remember { mutableStateOf(false) }
     var isShowDialogConnectionDisconnected by remember { mutableStateOf(false) }
+    var isShowDialogExpelParticipant by remember { mutableStateOf(false) }
+    var participantInfoToExpel by remember { mutableStateOf<RoomParticipantUi?>(null) }
 
     val permissionHandler =
         rememberMultiPermissionHandler(
@@ -163,7 +165,7 @@ fun CallRoomRouter(
             when (effect) {
                 is CallRoomEffect.SuccessCreateCallRoom -> {
                     signallingViewModel.onEvent(
-                        CallSignallingEvent.UpdatedRoomCode(effect.roomCode)
+                        UpdatedRoomCode(effect.roomCode)
                     )
                 }
 
@@ -179,7 +181,7 @@ fun CallRoomRouter(
                             SnackbarResult.Dismissed -> {}
                             SnackbarResult.ActionPerformed -> {
                                 roomViewModel.onEvent(
-                                    CallRoomEvent.DecideWaitingApproval(
+                                    DecideWaitingApproval(
                                         userId = effect.updatedUser.userId, isApprove = true
                                     )
                                 )
@@ -190,6 +192,12 @@ fun CallRoomRouter(
 
                 CallRoomEffect.SuccessDisconnectRoom -> {
                     navController.popBackStack()
+                }
+
+                CallRoomEffect.SuccessExpelMember -> {
+                    snackbarHostState.showSnackbar(
+                        message = context.getString(R.string.success_excluded_member)
+                    )
                 }
             }
         }
@@ -225,7 +233,9 @@ fun CallRoomRouter(
         roomState = roomState, signallingState = signallingState, wrtcState = wrtcState,
         isCameraOn = cameraPermissionData?.status == PermissionHandlerStatus.GRANTED && signallingState.participants[signallingState.myUserId]?.isCameraOn == true,
         isMicOn = micPermissionData?.status == PermissionHandlerStatus.GRANTED && signallingState.participants[signallingState.myUserId]?.isMicrophoneOn == true,
+        participantInfoToExpel = participantInfoToExpel,
         isSpeakerMuted = signallingState.isSpeakerMuted,
+        isShowDialogExpelParticipant = isShowDialogExpelParticipant,
         isShowParticipantBottomSheet = isShowParticipantBottomSheet,
         isShowDialogForWrongRoomCode = isShowDialogForWrongRoomCode,
         isShowDialogDisconnectRoom = isShowDialogDisconnectRoom,
@@ -254,10 +264,24 @@ fun CallRoomRouter(
                 CallRoomEvent.DecideWaitingApproval(userId = userId, isApprove = isApprove)
             )
             snackbarHostState.currentSnackbarData?.dismiss()
+        },
+        onEventShowExpelDialog = { userId ->
+            participantInfoToExpel = signallingState.participants[userId]
+            isShowDialogExpelParticipant = true
+        },
+        onEventDismissExpelDialog = {
+            isShowDialogExpelParticipant = false
+            participantInfoToExpel = null
+        },
+        onEventExpelParticipant = { userId ->
+            roomViewModel.onEvent(CallRoomEvent.ExpelMember(userId))
+            isShowDialogExpelParticipant = false
+            participantInfoToExpel = null
         }
     )
 }
 
+// ------------------------ SCREEN ------------------------
 @Composable
 fun CallRoomScreen(
     modifier: Modifier = Modifier,
@@ -269,7 +293,9 @@ fun CallRoomScreen(
     wrtcState: WebRtcState,
     isCameraOn: Boolean = true,
     isMicOn: Boolean = true,
+    participantInfoToExpel: RoomParticipantUi? = null,
     isSpeakerMuted: Boolean = false,
+    isShowDialogExpelParticipant: Boolean = false,
     isShowParticipantBottomSheet: Boolean = false,
     isShowDialogForWrongRoomCode: Boolean = false,
     isShowDialogConnectionDisconnected: Boolean = false,
@@ -287,7 +313,10 @@ fun CallRoomScreen(
     onEventToggleOnOffMic: (Boolean) -> Unit = { },
     onEventToggleSpeakerMute: (Boolean) -> Unit = { },
     onEventUpdateParticipantBottomSheetState: (Boolean) -> Unit = { },
-    onEventDecideWaiting: (String/*userId*/, Boolean/*isApprove*/) -> Unit = { _, _ -> }
+    onEventDecideWaiting: (String/*userId*/, Boolean/*isApprove*/) -> Unit = { _, _ -> },
+    onEventShowExpelDialog: (String/*userId*/) -> Unit = {},
+    onEventDismissExpelDialog: () -> Unit = {},
+    onEventExpelParticipant: (String/*targetUserId*/) -> Unit = {},
 ) {
 
     val layoutType = when (signallingState.participants.size) {
@@ -342,17 +371,33 @@ fun CallRoomScreen(
         }
     )
 
+    TogeDialog(
+        isShowDialog = isShowDialogExpelParticipant,
+        title = stringResource(R.string.exclude_participant_title),
+        content = stringResource(
+            id = R.string.confirm_exclude_participant_message,
+            participantInfoToExpel?.name ?: R.string.participant_title
+        ),
+        onConfirm = {
+            participantInfoToExpel?.userId?.let { onEventExpelParticipant(it) }
+        },
+        onDismiss = { onEventDismissExpelDialog() }
+    )
+
     /* Bottom Sheet */
     ParticipantBottomSheet(
         modifier = modifier,
         modalSheetState = participantBottomSheetState,
         isShow = isShowParticipantBottomSheet,
+        isHost = roomState.isHost,
+        myUserId = signallingState.myUserId,
         roomCode = roomState.roomCode,
         waitingParticipants = roomState.waitingParticipants,
         participants = signallingState.toParticipantList(),
         onDismissRequest = { onEventUpdateParticipantBottomSheetState(false) },
         onApproveWaiting = { userId -> onEventDecideWaiting(userId, true) },
-        onRejectWaiting = { userId -> onEventDecideWaiting(userId, false) }
+        onRejectWaiting = { userId -> onEventDecideWaiting(userId, false) },
+        onExpelParticipant = { userId -> onEventShowExpelDialog(userId) }
     )
 
     /* UI */
@@ -375,7 +420,7 @@ fun CallRoomScreen(
                 isMicOn = isMicOn,
                 onClickCamera = { onEventToggleOnOffCamera(!isCameraOn) },
                 onClickMic = { onEventToggleOnOffMic(!isMicOn) },
-                onClickParticipant = { onEventUpdateParticipantBottomSheetState(true) },
+                onClickParticipant = { onEventUpdateParticipantBottomSheetState(true)/* ParticipantBottomSheet */ },
                 onClickChat = { }
             )
         }
