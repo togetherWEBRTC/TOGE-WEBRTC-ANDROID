@@ -9,6 +9,7 @@ import example.beechang.together.domain.usecase.room.CreateRoomUseCase
 import example.beechang.together.domain.usecase.room.DecideWaitingEnterFromHostUseCase
 import example.beechang.together.domain.usecase.room.DisconnectRoomUseCase
 import example.beechang.together.domain.usecase.room.ExpelMemberUseCase
+import example.beechang.together.domain.usecase.room.ReceiveExpelledNotifyUseCase
 import example.beechang.together.domain.usecase.room.ReceiveRoomDisconnectedUseCase
 import example.beechang.together.domain.usecase.room.ReceiveWaitingNotifyUseCase
 import example.beechang.together.ui.utils.BaseViewModel
@@ -25,6 +26,7 @@ class CallRoomViewModel @Inject constructor(
     private val disconnectRoomUseCase: DisconnectRoomUseCase,
     private val decideWaitingMemberEnterRoomUseCase: DecideWaitingEnterFromHostUseCase,
     private val receiveWaitingNotifyUseCase: ReceiveWaitingNotifyUseCase,
+    private val receiveExpelledNotifyUseCase: ReceiveExpelledNotifyUseCase,
     private val receiveRoomDisconnectedUseCase: ReceiveRoomDisconnectedUseCase,
     private val expelMemberUseCase: ExpelMemberUseCase,
     savedStateHandle: SavedStateHandle,
@@ -41,6 +43,7 @@ class CallRoomViewModel @Inject constructor(
 
         listeningWaitingNotify()
         listeningRoomConnectionState()
+        listeningBeExpelledNotify()
     }
 
     override fun onEvent(event: CallRoomEvent) {
@@ -126,6 +129,15 @@ class CallRoomViewModel @Inject constructor(
             )
     }
 
+    private fun listeningBeExpelledNotify() = viewModelScope.launch {
+        receiveExpelledNotifyUseCase.invoke()
+            .collectInViewModel(
+                onSuccess = { result ->
+                    sendEffect(CallRoomEffect.BeExpelledRoom)
+                }
+            )
+    }
+
     private fun listeningRoomConnectionState() = viewModelScope.launch {
         receiveRoomDisconnectedUseCase.invoke()
             .collect {
@@ -165,4 +177,5 @@ sealed interface CallRoomEffect : UiEffect {
 
     object SuccessDisconnectRoom : CallRoomEffect
     object SuccessExpelMember : CallRoomEffect
+    object BeExpelledRoom : CallRoomEffect
 }

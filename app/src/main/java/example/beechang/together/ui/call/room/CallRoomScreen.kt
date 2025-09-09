@@ -58,7 +58,7 @@ fun CallRoomRouter(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val webRtcServiceManager = LocalWebRtcServiceManager.current
-
+    var participantInfoToExpel by remember { mutableStateOf<RoomParticipantUi?>(null) }
     /* BottomSheetState */
     val participantBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isShowParticipantBottomSheet by remember { mutableStateOf(false) }
@@ -69,7 +69,7 @@ fun CallRoomRouter(
     var isShowDialogPermission by remember { mutableStateOf(false) }
     var isShowDialogConnectionDisconnected by remember { mutableStateOf(false) }
     var isShowDialogExpelParticipant by remember { mutableStateOf(false) }
-    var participantInfoToExpel by remember { mutableStateOf<RoomParticipantUi?>(null) }
+    var isShowDialogBeExpelled by remember { mutableStateOf(false) }
 
     val permissionHandler =
         rememberMultiPermissionHandler(
@@ -199,6 +199,14 @@ fun CallRoomRouter(
                         message = context.getString(R.string.success_excluded_member)
                     )
                 }
+
+                is CallRoomEffect.BeExpelledRoom -> {
+                    webRtcServiceManager.release()
+//                    roomViewModel.WebSocketDisconnect 시 알림을 별도로 받고 자동으로 뒤로가기 처리 -> 얼럿을 못 볼 수 있으니 얼럿 누르는 시점에서 별도로 처리
+//                    roomViewModel.onEvent(CallRoomEvent.WebSocketDisconnect)
+                    signallingViewModel.onEvent(CallSignallingEvent.Disconnect)
+                    isShowDialogBeExpelled = true
+                }
             }
         }
     }
@@ -241,11 +249,12 @@ fun CallRoomRouter(
         isShowDialogDisconnectRoom = isShowDialogDisconnectRoom,
         isShowDialogConnectionDisconnected = isShowDialogConnectionDisconnected,
         isShowDialogPermission = isShowDialogPermission,
+        isShowDialogBeExpelled = isShowDialogBeExpelled,
         /* EVENT */
         onEventDisconnect = {
             webRtcServiceManager.release()
-            roomViewModel.onEvent(WebSocketDisconnect)
-            signallingViewModel.onEvent(Disconnect)
+            roomViewModel.onEvent(CallRoomEvent.WebSocketDisconnect)
+            signallingViewModel.onEvent(CallSignallingEvent.Disconnect)
         },
         onEventDismissDisconnectDialog = { isShowDialogDisconnectRoom = false },
         onEventShowDisconnectDialog = { isShowDialogDisconnectRoom = true },
@@ -277,6 +286,10 @@ fun CallRoomRouter(
             roomViewModel.onEvent(CallRoomEvent.ExpelMember(userId))
             isShowDialogExpelParticipant = false
             participantInfoToExpel = null
+        },
+        onEventDismissBeExpelledDialog = {
+            isShowDialogBeExpelled = false
+            roomViewModel.onEvent(CallRoomEvent.WebSocketDisconnect)
         }
     )
 }
@@ -301,6 +314,7 @@ fun CallRoomScreen(
     isShowDialogConnectionDisconnected: Boolean = false,
     isShowDialogDisconnectRoom: Boolean = false,
     isShowDialogPermission: Boolean = false,
+    isShowDialogBeExpelled: Boolean = false,
     /* EVENT */
     onEventDisconnect: () -> Unit = {},
     onEventDismissDisconnectDialog: () -> Unit = {},
@@ -317,6 +331,7 @@ fun CallRoomScreen(
     onEventShowExpelDialog: (String/*userId*/) -> Unit = {},
     onEventDismissExpelDialog: () -> Unit = {},
     onEventExpelParticipant: (String/*targetUserId*/) -> Unit = {},
+    onEventDismissBeExpelledDialog: () -> Unit = {},
 ) {
 
     val layoutType = when (signallingState.participants.size) {
@@ -344,6 +359,13 @@ fun CallRoomScreen(
             onEventDisconnect()
             onEventDismissWrongRoomCodeDialog()
         }
+    )
+
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowDialogBeExpelled,
+        title = stringResource(R.string.action_exclude_participant),
+        content = stringResource(R.string.notification_excluded_by_host),
+        onConfirm = { onEventDismissBeExpelledDialog() }
     )
 
     TogeDialog(
