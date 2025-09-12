@@ -398,7 +398,7 @@ fun CallRoomScreen(
         title = stringResource(R.string.exclude_participant_title),
         content = stringResource(
             id = R.string.confirm_exclude_participant_message,
-            participantInfoToExpel?.name ?: R.string.participant_title
+            participantInfoToExpel?.name ?: stringResource(R.string.participant_title)
         ),
         onConfirm = {
             participantInfoToExpel?.userId?.let { onEventExpelParticipant(it) }
