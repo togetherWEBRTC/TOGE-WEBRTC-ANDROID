@@ -31,6 +31,12 @@ data class RoomMemberRequest(
 )
 
 @Serializable
+data class RoomBasicMemberRequest(
+    @SerialName("roomCode") val roomCode: String = "",
+    @SerialName("userId") val userId: String = "",
+)
+
+@Serializable
 data class RoomDecisionWaitingEnterRequest(
     @SerialName("roomCode") val roomCode: String = "",
     @SerialName("userId") val userId: String = "",

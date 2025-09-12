@@ -1,6 +1,7 @@
 package example.beechang.together.ui.component.bottomsheet
 
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.text.style.TextOverflow
@@ -13,19 +14,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -48,13 +57,16 @@ fun ParticipantBottomSheet(
         skipPartiallyExpanded = true,
     ),
     isShow: Boolean = false,
+    isHost: Boolean = false,
+    myUserId: String = "",
     roomCode: String = "",
     waitingParticipants: List<RoomParticipantUi> = listOf(),
     participants: List<RoomParticipantUi> = listOf(),
     /* EVENT */
     onDismissRequest: () -> Unit = {},
     onApproveWaiting: (String/*userId*/) -> Unit = {},
-    onRejectWaiting: (String/*userId*/) -> Unit = {}
+    onRejectWaiting: (String/*userId*/) -> Unit = {},
+    onExpelParticipant: (String/*userId*/) -> Unit = {},
 ) {
     if (isShow) {
 
@@ -100,7 +112,7 @@ fun ParticipantBottomSheet(
                 }
 
                 // 대기자
-                if (waitingParticipants.isNotEmpty()) {
+                if (isHost && waitingParticipants.isNotEmpty()) {
                     item {
                         Text(
                             text = stringResource(R.string.waiting_participant_title),
@@ -144,7 +156,10 @@ fun ParticipantBottomSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = if (index == 0) 0.dp else 8.dp),
-                        participant = participant
+                        participant = participant,
+                        isHost = isHost,
+                        myUserId = myUserId,
+                        onExpelMember = { onExpelParticipant(participant.userId) }
                     )
                 }
             }
@@ -157,7 +172,7 @@ fun RoomParticipantWaitingList(
     modifier: Modifier = Modifier,
     participant: RoomParticipantUi,
     onApproveWaiting: () -> Unit = {},
-    onRejectWaiting: () -> Unit = {}
+    onRejectWaiting: () -> Unit = {},
 ) {
     Row(
         modifier = modifier,
@@ -215,7 +230,10 @@ fun RoomParticipantWaitingList(
 @Composable
 fun RoomParticipantList(
     modifier: Modifier = Modifier,
-    participant: RoomParticipantUi
+    participant: RoomParticipantUi,
+    isHost: Boolean = false,
+    myUserId: String = "",
+    onExpelMember: () -> Unit = {},
 ) {
     Row(
         modifier = modifier,
@@ -249,6 +267,42 @@ fun RoomParticipantList(
                 )
             }
         }
+
+        if (participant.userId != myUserId) {
+            var isMenuExpanded by remember { mutableStateOf(false) }
+
+            Box(modifier = Modifier.offset(x = 16.dp)) {
+                IconButton(onClick = { isMenuExpanded = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_more),
+                        modifier = Modifier.size(24.dp),
+                        contentDescription = "more"
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = isMenuExpanded,
+                    onDismissRequest = { isMenuExpanded = false }
+                ) {
+                    if (isHost) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(R.string.exclude_participant_title),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            onClick = {
+                                onExpelMember()
+                                isMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -258,6 +312,7 @@ fun PreviewParticipantWaitingBottomSheet() {
     ParticipantBottomSheet(
         onDismissRequest = { },
         isShow = true,
+        isHost = true,
         modalSheetState = rememberStandardBottomSheetState(
             initialValue = SheetValue.PartiallyExpanded
         ),

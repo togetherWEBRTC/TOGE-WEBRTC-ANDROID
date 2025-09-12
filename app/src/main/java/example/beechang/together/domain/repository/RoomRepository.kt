@@ -23,6 +23,7 @@ interface RoomRepository {
         roomCode: String,
         isIncludingMySelf: Boolean
     ): TogeResult<List<RoomParticipant>>
+    suspend fun expelMemberFromRoom(roomCode: String, targetUserId: String): TogeResult<Boolean>
 
     suspend fun changeMicStatus(roomCode: String, isMicrophoneOn: Boolean): TogeResult<Boolean>
     suspend fun changeCameraStatus(roomCode: String, isCameraOn: Boolean): TogeResult<Boolean>
@@ -32,5 +33,6 @@ interface RoomRepository {
     suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<UpdatedRoomParticipant>>
     suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomParticipant>>
     suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomParticipant>>
+    suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>>
     suspend fun receiveRoomConnectionState(): Flow<RoomConnectionState>
 }

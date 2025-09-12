@@ -94,6 +94,12 @@ data class RoomNotifyWaitResponse(
 }
 
 @Serializable
+data class RoomNotifyBasicResponse(
+    @SerialName("name") val name: String,
+    @SerialName("roomCode") val roomCode: String,
+)
+
+@Serializable
 data class RoomNotifyWaitingResultResponse(
     @SerialName("name") val name: String,
     @SerialName("isApprove") val isApprove: Boolean
