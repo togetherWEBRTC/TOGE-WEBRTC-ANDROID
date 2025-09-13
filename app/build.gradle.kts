@@ -119,6 +119,7 @@ dependencies {
     //  Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.core.splashscreen)
 
     //  Ui
     implementation(platform(libs.androidx.compose.bom))
