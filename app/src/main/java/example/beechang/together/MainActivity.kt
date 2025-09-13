@@ -2,14 +2,18 @@ package example.beechang.together
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import example.beechang.together.ui.MainNavigation
 import example.beechang.together.ui.TogetherApp
+import example.beechang.together.ui.utils.RemoteConfigManager
 import example.beechang.together.webrtc.intent.TogeWebRtcIntent
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -18,12 +22,25 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        installSplashScreen()
+
+        installSplashScreen().setOnExitAnimationListener { provider ->
+            lifecycleScope.launch {
+                try {
+                    RemoteConfigManager.init()
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "RemoteConfig Failed : ", e)
+                } finally {
+                    provider.remove()
+                }
+            }
+        }
+
         setContent {
             TogetherApp {
                 MainNavigation(activityClass = MainActivity::class.java)
             }
         }
+
     }
 
     override fun onNewIntent(intent: Intent) {
