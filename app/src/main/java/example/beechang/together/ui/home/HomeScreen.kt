@@ -222,7 +222,7 @@ fun HomeScreen(
         },
         bottomBar = {
             if (isShowSkeletonUi) {
-                HomeBottomShimmer(modifier = modifier)
+                HomeBottomShimmer()
             } else {
                 HomeBottomBar(
                     isLogin = isLoggedIn,
@@ -389,9 +389,9 @@ fun HomeScreen(
 
 
 @Composable
-private fun HomeBottomShimmer(modifier: Modifier = Modifier) {
+private fun HomeBottomShimmer() {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .height(72.dp)
             .padding(horizontal = 16.dp)
@@ -401,9 +401,9 @@ private fun HomeBottomShimmer(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun HomeContentShimmer(modifier: Modifier = Modifier) {
+fun HomeContentShimmer() {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
     ) {
         val repeatCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -414,7 +414,7 @@ fun HomeContentShimmer(modifier: Modifier = Modifier) {
 
         repeat(repeatCount) {
             Box(
-                modifier = modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(72.dp)
                     .shimmer(radius = 12.dp)
