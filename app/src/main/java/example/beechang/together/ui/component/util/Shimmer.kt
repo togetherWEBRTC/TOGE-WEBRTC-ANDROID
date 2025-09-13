@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import example.beechang.together.ui.theme.LocalTogeAppColor
@@ -32,9 +33,15 @@ fun Modifier.shimmer(
     ratio: Float = 0.4f,
 ): Modifier = composed {
     val transition = rememberInfiniteTransition(label = "")
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val shimmerWidth = screenWidthDp * ratio
+    val targetValue = with(density) { (screenWidthDp + shimmerWidth).toPx() }
+
     val translateAnim by transition.animateFloat(
         initialValue = 0f,
-        targetValue = 1000f,
+        targetValue = targetValue,
         animationSpec = infiniteRepeatable(
             animation = tween(
                 durationMillis = 1100,
@@ -43,10 +50,6 @@ fun Modifier.shimmer(
             repeatMode = RepeatMode.Restart
         )
     )
-
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.dp
-    val shimmerWidth = screenWidthDp * ratio
 
 
     clip(RoundedCornerShape(radius))
