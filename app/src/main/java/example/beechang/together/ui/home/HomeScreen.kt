@@ -47,6 +47,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import android.os.Build
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.imePadding
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.LoginState
@@ -195,6 +196,7 @@ fun HomeScreen(
     TogeScaffold(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     localFocusManager.clearFocus() // Use for clearFocus to HomeBottomBar.TextField
@@ -225,6 +227,7 @@ fun HomeScreen(
                 HomeBottomShimmer()
             } else {
                 HomeBottomBar(
+                    modifier = Modifier,
                     isLogin = isLoggedIn,
                     inputText = state.enterRoomCode,
                     onInputTextChange = { newText ->
