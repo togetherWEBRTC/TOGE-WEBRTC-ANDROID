@@ -226,8 +226,7 @@ fun UserSocialSignUpScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.Top,
         ) {
             Column(
