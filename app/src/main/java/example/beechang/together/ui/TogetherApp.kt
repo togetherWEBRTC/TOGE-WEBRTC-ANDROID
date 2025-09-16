@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowInsetsControllerCompat
@@ -32,8 +33,8 @@ fun TogetherApp(
             if (!LocalView.current.isInEditMode) {
                 val window = (view.context as Activity).window
                 SideEffect {
-                    // status bar 배경을 compose 배경색과 동일하게
-                    window.statusBarColor = DarkColorScheme.background.toArgb()
+                    window.statusBarColor = Color.Transparent.toArgb()
+                    window.navigationBarColor = Color.Transparent.toArgb()
 
                     WindowInsetsControllerCompat(window, view).apply {
                         isAppearanceLightStatusBars = false //statusbar 흰색아이콘 고정
