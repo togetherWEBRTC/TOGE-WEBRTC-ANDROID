@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +45,7 @@ fun HomeBottomBar(
     isLogin: Boolean,
     inputText: String,
     localFocusManager: FocusManager,
+    useNavigationBarsPadding: Boolean = true,
     onInputTextChange: (String) -> Unit = {},
     onMoveLogin: () -> Unit = {},
     onMoveToCall: () -> Unit = {},
@@ -54,7 +53,7 @@ fun HomeBottomBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .imePadding(),
+            .then(if (useNavigationBarsPadding) Modifier.navigationBarsPadding() else Modifier)
     ) {
         Card(
             modifier = modifier
@@ -145,12 +144,5 @@ fun HomeBottomBar(
                 }
             }
         }
-        // device navigation bar height
-        val navigationBarHeight = WindowInsets.navigationBars.getBottom(LocalDensity.current)
-        Spacer(
-            modifier = Modifier
-                .height(with(LocalDensity.current) { navigationBarHeight.toDp() })
-                .fillMaxWidth()
-        )
     }
 }
