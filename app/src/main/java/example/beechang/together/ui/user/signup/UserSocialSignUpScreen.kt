@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -211,6 +213,7 @@ fun UserSocialSignUpScreen(
     TogeScaffold(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     localFocusManager.clearFocus()
@@ -223,82 +226,89 @@ fun UserSocialSignUpScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.Top,
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                text = stringResource(R.string.signup_prompt),
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            Spacer(modifier = Modifier.height(32.dp)) // nickname
-            TogeOutLineTextField(
-                value = state.nickname,
-                onValueChange = { onEventNicknameChanged(it) },
-                labelText = stringResource(R.string.nickname),
-                placeholderText = stringResource(R.string.input_nickname),
-                singleLine = true,
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next,
-                onImeAction = {},
-                focusManager = localFocusManager,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // 약관동의
-            Spacer(modifier = Modifier.height(16.dp))
-            CustomOutlinedContainer(
-                labelText = stringResource(R.string.agreement_section_title),
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
             ) {
-                val allAgreed = state.termsAgreed && state.privacyAgreed
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    text = stringResource(R.string.signup_prompt),
+                    style = MaterialTheme.typography.headlineSmall
+                )
 
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onEventAllAgreementsChanged(!allAgreed) },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = allAgreed,
-                            onCheckedChange = onEventAllAgreementsChanged
+                Spacer(modifier = Modifier.height(32.dp)) // nickname
+                TogeOutLineTextField(
+                    value = state.nickname,
+                    onValueChange = { onEventNicknameChanged(it) },
+                    labelText = stringResource(R.string.nickname),
+                    placeholderText = stringResource(R.string.input_nickname),
+                    singleLine = true,
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next,
+                    onImeAction = {},
+                    focusManager = localFocusManager,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 약관동의
+                Spacer(modifier = Modifier.height(16.dp))
+                CustomOutlinedContainer(
+                    labelText = stringResource(R.string.agreement_section_title),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val allAgreed = state.termsAgreed && state.privacyAgreed
+
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onEventAllAgreementsChanged(!allAgreed) },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = allAgreed,
+                                onCheckedChange = onEventAllAgreementsChanged
+                            )
+                            Text(
+                                text = stringResource(R.string.agreement_all),
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                        AgreementItemRow(
+                            prefix = stringResource(R.string.agreement_prefix_required),
+                            text = stringResource(R.string.agreement_privacy_policy_title),
+                            isChecked = state.privacyAgreed,
+                            onCheckedChange = onEventPrivacyAgreementChanged,
+                            onClickDetail = { onClickPrivacyPolicy() },
                         )
-                        Text(
-                            text = stringResource(R.string.agreement_all),
-                            style = MaterialTheme.typography.titleSmall
+                        AgreementItemRow(
+                            prefix = stringResource(R.string.agreement_prefix_required),
+                            text = stringResource(R.string.agreement_terms_of_service_title),
+                            isChecked = state.termsAgreed,
+                            onCheckedChange = onEventTermsAgreementChanged,
+                            onClickDetail = { onClickTermsOfService() },
                         )
                     }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                    AgreementItemRow(
-                        prefix = stringResource(R.string.agreement_prefix_required),
-                        text = stringResource(R.string.agreement_privacy_policy_title),
-                        isChecked = state.privacyAgreed,
-                        onCheckedChange = onEventPrivacyAgreementChanged,
-                        onClickDetail = { onClickPrivacyPolicy() },
-                    )
-                    AgreementItemRow(
-                        prefix = stringResource(R.string.agreement_prefix_required),
-                        text = stringResource(R.string.agreement_terms_of_service_title),
-                        isChecked = state.termsAgreed,
-                        onCheckedChange = onEventTermsAgreementChanged,
-                        onClickDetail = { onClickTermsOfService() },
-                    )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             TogeConfirmButton(
                 text = stringResource(R.string.signup),
                 onClick = { onEventSubmitSignUp() },
                 enabled = state.isSignUpEnabled && !state.isLoading,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
         }
     }

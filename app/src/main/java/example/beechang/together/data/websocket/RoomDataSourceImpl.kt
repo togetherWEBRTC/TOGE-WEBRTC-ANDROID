@@ -1,5 +1,6 @@
 package example.beechang.together.data.websocket
 
+import example.beechang.together.data.request.RoomBasicMemberRequest
 import example.beechang.together.data.request.RoomChangeCameraRequest
 import example.beechang.together.data.request.RoomChangeMicRequest
 import example.beechang.together.data.request.RoomCodeRequest
@@ -8,6 +9,7 @@ import example.beechang.together.data.request.RoomMemberRequest
 import example.beechang.together.data.response.BaseResponse
 import example.beechang.together.data.response.RoomCreateResponse
 import example.beechang.together.data.response.RoomMemberResponse
+import example.beechang.together.data.response.RoomNotifyBasicResponse
 import example.beechang.together.data.response.RoomNotifyChangingCameraStatusResponse
 import example.beechang.together.data.response.RoomNotifyChangingMicStatusResponse
 import example.beechang.together.data.response.RoomNotifyUpdateParticipantResponse
@@ -24,7 +26,7 @@ import javax.inject.Singleton
 
 @Singleton
 class RoomDataSourceImpl @Inject constructor(
-    private val webSocketClient: WebSocketClient
+    private val webSocketClient: WebSocketClient,
 ) : RoomDataSource {
 
     override suspend fun connect(accessToken: String): TogeResult<Boolean> =
@@ -62,7 +64,7 @@ class RoomDataSourceImpl @Inject constructor(
     override suspend fun requestDecisionWaitingEnter(
         roomCode: String,
         targetUserId: String,
-        isApprove: Boolean
+        isApprove: Boolean,
     ): TogeResult<BaseResponse> = togeToResult {
         webSocketClient.emitWithAck(
             event = SocketEventConstants.ROOM_DECIDE_JOIN_FROM_HOST,
@@ -77,7 +79,7 @@ class RoomDataSourceImpl @Inject constructor(
 
     override suspend fun getRoomParticipant(
         roomCode: String,
-        isIncludingMySelf: Boolean
+        isIncludingMySelf: Boolean,
     ): TogeResult<RoomMemberResponse> = togeToResult {
         webSocketClient.emitWithAck(
             event = SocketEventConstants.ROOM_MEMBER_LIST,
@@ -89,9 +91,23 @@ class RoomDataSourceImpl @Inject constructor(
         )
     }
 
+    override suspend fun expelMemberFromRoom(
+        roomCode: String,
+        targetUserId: String,
+    ): TogeResult<BaseResponse> = togeToResult {
+        webSocketClient.emitWithAck(
+            event = SocketEventConstants.ROOM_MEMBER_EXPEL,
+            request = RoomBasicMemberRequest(
+                roomCode = roomCode,
+                userId = targetUserId
+            ),
+            responseType = BaseResponse.serializer()
+        )
+    }
+
     override suspend fun changeMicStatus(
         roomCode: String,
-        isMicrophoneOn: Boolean
+        isMicrophoneOn: Boolean,
     ): TogeResult<BaseResponse> = togeToResult {
         webSocketClient.emitWithAck(
             event = SocketEventConstants.CALL_CHANGE_MIC,
@@ -105,7 +121,7 @@ class RoomDataSourceImpl @Inject constructor(
 
     override suspend fun changeCameraStatus(
         roomCode: String,
-        isCameraOn: Boolean
+        isCameraOn: Boolean,
     ): TogeResult<BaseResponse> = togeToResult {
         webSocketClient.emitWithAck(
             event = SocketEventConstants.CALL_CHANGE_CAMERA,
@@ -150,6 +166,13 @@ class RoomDataSourceImpl @Inject constructor(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.CALL_NOTIFY_CHANGE_CAMERA,
             resType = RoomNotifyChangingCameraStatusResponse.serializer()
+        )
+
+    override suspend fun receiveRoomNotifyBeExpelledFromHost(): Flow<TogeResult<RoomNotifyBasicResponse>> =
+        socketEventToResultFlow(
+            webSocketClient = webSocketClient,
+            eventName = SocketEventConstants.ROOM_NOTIFY_EXPEL,
+            resType = RoomNotifyBasicResponse.serializer()
         )
 
     override suspend fun receiveRoomConnectionState(): Flow<WebSocketConnectionState> =

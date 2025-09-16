@@ -109,7 +109,7 @@
     <string name="confirm_end_call">통화를 종료하시겠습니까?</string>
     <string name="video_call">화상 통화</string>
     <string name="end_call">통화 종료</string>
-    <string name="together_call">Together 통화</string>
+    <string name="together_call">TOGE 통화중</string>
     <string name="tap_to_return_to_call_screen">탭하여 통화 화면으로 돌아가기</string>
 
     <!--    CALLING PARTICIPANTS 통화 참여자-->
@@ -122,4 +122,9 @@
     <string name="label_me">나</string>
     <string name="label_host">호스트</string>
     <string name="entered_room_number">참여한 방번호 : %s</string>
+    <string name="exclude_participant_title">참여자 제외</string>
+    <string name="confirm_exclude_participant_message">\'%s\' 님을 통화에서 제외하시겠습니까?</string>
+    <string name="action_exclude_participant">제외</string>
+    <string name="notification_excluded_by_host">호스트에 의해 통화에서 제외되었습니다.</string>
+    <string name="success_excluded_member">상대방이 통화에서 제외되었습니다.</string>
 </resources>

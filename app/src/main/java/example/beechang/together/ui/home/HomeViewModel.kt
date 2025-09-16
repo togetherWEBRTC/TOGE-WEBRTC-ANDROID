@@ -22,7 +22,7 @@ class HomeViewModel @Inject constructor(
     private val getUserInfoUseCase: GetUserInfoUseCase,
     private val updateAccessTokenUseCase: UpdateAccessTokenUseCase,
     private val connectRoomUseCase: ConnectRoomUseCase,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     savedStateHandle, HomeState(), HOME_STATE
 ) {
@@ -51,7 +51,12 @@ class HomeViewModel @Inject constructor(
         updateState { copy(isLoading = true) }
         getLoginStateUseCase.invoke()
             .collectInViewModel(
-                onSuccess = { updateLoginState(it) },
+                onSuccess = {
+                    viewModelScope.launch {
+                        updateLoginState(it).join()
+                        updateState { copy(isShowSkeleton = false) }
+                    }
+                },
                 onFinally = { updateState { copy(isLoading = false) } }
             )
     }
@@ -100,6 +105,7 @@ data class HomeState(
     val isLoading: Boolean = false,
     val profileUrl: String = "",
     val enterRoomCode: String = "",
+    val isShowSkeleton: Boolean = true,
 ) : Parcelable, UiState
 
 sealed interface HomeEvent : UiEvent {

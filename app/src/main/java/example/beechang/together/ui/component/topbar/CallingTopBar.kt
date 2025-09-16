@@ -22,13 +22,13 @@ fun CallingTopBar(
     isVolumeOn: Boolean,
     onClickCallEnd: () -> Unit,
     onClickToggleSpeaker: () -> Unit,
-    onClickSwitchCamera: () -> Unit
+    onClickSwitchCamera: () -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

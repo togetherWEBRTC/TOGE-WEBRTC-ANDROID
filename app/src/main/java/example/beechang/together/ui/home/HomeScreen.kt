@@ -46,6 +46,8 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import android.os.Build
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.imePadding
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.LoginState
@@ -58,6 +60,7 @@ import example.beechang.together.ui.component.text.TogeClickableText
 import example.beechang.together.ui.component.topbar.HomeTopBar
 import example.beechang.together.ui.component.util.CircularImage
 import example.beechang.together.ui.component.util.ClickShrinkEffect
+import example.beechang.together.ui.component.util.shimmer
 import example.beechang.together.ui.theme.LocalTogeAppColor
 import example.beechang.together.ui.user.UserNavDestination
 import example.beechang.together.ui.utils.PermissionHandlerStatus
@@ -130,6 +133,7 @@ fun HomeRouter(
         /* STATE */
         state = uiState,
         isLoggedIn = loginState == LoginState.Login,
+        isShowSkeletonUi = uiState.isShowSkeleton,
         /* EVENT */
         onEventUpdateEnterRoomCode = { newText ->
             homeViewModel.onEvent(HomeEvent.UpdateEnterRoomCode(newText))
@@ -149,6 +153,7 @@ fun HomeScreen(
     /* STATE */
     state: HomeState = HomeState(),
     isLoggedIn: Boolean = false,
+    isShowSkeletonUi: Boolean = false,
     /* EVENT */
     onEventUpdateEnterRoomCode: (String) -> Unit = {},
     onEventEnterRoom: () -> Unit = {},
@@ -191,6 +196,7 @@ fun HomeScreen(
     TogeScaffold(
         modifier = modifier
             .fillMaxSize()
+            .imePadding()
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     localFocusManager.clearFocus() // Use for clearFocus to HomeBottomBar.TextField
@@ -202,34 +208,41 @@ fun HomeScreen(
                 modifier = Modifier,
                 title = stringResource(R.string.together),
                 rightContent = {
-                    if (isLoggedIn) {
-                        ClickShrinkEffect(onClick = onMoveToMyPage) { CircularImage(imageUrl = state.profileUrl) }
-                    } else {
-                        TogeClickableText(
-                            text = stringResource(R.string.login),
-                            style = MaterialTheme.typography.bodyLarge,
-                            onClick = { onMoveToLogin() }
-                        )
+                    if (!isShowSkeletonUi) {
+                        if (isLoggedIn) {
+                            ClickShrinkEffect(onClick = onMoveToMyPage) { CircularImage(imageUrl = state.profileUrl) }
+                        } else {
+                            TogeClickableText(
+                                text = stringResource(R.string.login),
+                                style = MaterialTheme.typography.bodyLarge,
+                                onClick = { onMoveToLogin() }
+                            )
+                        }
                     }
                 }
             )
         },
         bottomBar = {
-            HomeBottomBar(
-                isLogin = isLoggedIn,
-                inputText = state.enterRoomCode,
-                onInputTextChange = { newText ->
-                    onEventUpdateEnterRoomCode(newText)
-                },
-                localFocusManager = localFocusManager,
-                onMoveToCall = {
-                    permissionHandler.requestAllPermissions()
-                    onEventEnterRoom()
-                }
-            )
+            if (isShowSkeletonUi) {
+                HomeBottomShimmer()
+            } else {
+                HomeBottomBar(
+                    modifier = Modifier,
+                    isLogin = isLoggedIn,
+                    inputText = state.enterRoomCode,
+                    onInputTextChange = { newText ->
+                        onEventUpdateEnterRoomCode(newText)
+                    },
+                    localFocusManager = localFocusManager,
+                    onMoveToCall = {
+                        permissionHandler.requestAllPermissions()
+                        onEventEnterRoom()
+                    }
+                )
+            }
         },
         floatingActionButton = {
-            if (isLoggedIn) {
+            if (isLoggedIn && !isShowSkeletonUi) {
                 TogeFloatingButtonWithIcon(
                     enabled = true,
                     iconRes = R.drawable.ic_video_call,
@@ -257,6 +270,11 @@ fun HomeScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            if (isShowSkeletonUi) {
+                HomeContentShimmer()
+                return@Column
+            }
 
             TogePermissionItem(
                 icon = painterResource(id = R.drawable.ic_photo_camera),
@@ -372,6 +390,43 @@ fun HomeScreen(
     }
 }
 
+
+@Composable
+private fun HomeBottomShimmer() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 8.dp)
+            .shimmer(radius = 12.dp)
+    )
+}
+
+@Composable
+fun HomeContentShimmer() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        val repeatCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            3
+        } else {
+            2
+        }
+
+        repeat(repeatCount) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .shimmer(radius = 12.dp)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
 @Preview
 @Composable
 fun PreviewHomeScreenLogin() {
@@ -405,5 +460,19 @@ fun PreviewHomeScreenLogout() {
         onEventCreateRoom = {},
         onMoveToLogin = {},
         onMoveToMyPage = {}
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewHomeScreenLoading() {
+    HomeScreen(
+        state = HomeState(
+            enterRoomCode = "1234",
+            isLoading = true,
+            profileUrl = "",
+            isShowSkeleton = true
+        ),
+        isShowSkeletonUi = true,
     )
 }
