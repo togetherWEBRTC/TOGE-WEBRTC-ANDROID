@@ -109,7 +109,7 @@
     <string name="confirm_end_call">통화를 종료하시겠습니까?</string>
     <string name="video_call">화상 통화</string>
     <string name="end_call">통화 종료</string>
-    <string name="together_call">Together 통화</string>
+    <string name="together_call">TOGE 통화중</string>
     <string name="tap_to_return_to_call_screen">탭하여 통화 화면으로 돌아가기</string>
 
     <!--    CALLING PARTICIPANTS 통화 참여자-->
