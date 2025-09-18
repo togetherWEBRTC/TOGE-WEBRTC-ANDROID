@@ -127,4 +127,20 @@
     <string name="action_exclude_participant">제외</string>
     <string name="notification_excluded_by_host">호스트에 의해 통화에서 제외되었습니다.</string>
     <string name="success_excluded_member">상대방이 통화에서 제외되었습니다.</string>
+
+    <!--    MORE MENU 더보기 메뉴-->
+    <string name="report_bad_user">불량 유저 신고하기</string>
+    <string name="report_error_and_inquiry">오류 신고 및 건의하기</string>
+
+    <!--    REPORT USER 사용자 신고-->
+    <string name="report_user_title">참여자 신고</string>
+    <string name="report_target_label">신고 대상</string>
+    <string name="report_reason_label">신고 사유</string>
+    <string name="report_description_label">추가 설명 (선택)</string>
+    <string name="report_description_placeholder">추가 설명 (선택)</string>
+    <string name="report_submit">신고하기</string>
+    <string name="report_cancel">취소</string>
+    <string name="report_confirm_message">정말로 신고하시겠습니까?\n신고된 사용자의 콘텐츠는 더 이상 보이지 않습니다.</string>
+    <string name="error_no_participants">참여자가 없습니다.</string>
+    <string name="report_user_completed">신고가 완료되었습니다.\n해당 참여자의 콘텐츠는 지금부터 보이지 않습니다.</string>
 </resources>
