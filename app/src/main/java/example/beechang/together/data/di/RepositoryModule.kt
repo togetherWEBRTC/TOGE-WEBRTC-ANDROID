@@ -7,9 +7,11 @@ import dagger.hilt.components.SingletonComponent
 import example.beechang.together.data.repository.RoomRepositoryImpl
 import example.beechang.together.data.repository.SignallingRepositoryImpl
 import example.beechang.together.data.repository.UserRepositoryImpl
+import example.beechang.together.data.repository.ReportRepositoryImpl
 import example.beechang.together.domain.repository.RoomRepository
 import example.beechang.together.domain.repository.SignallingRepository
 import example.beechang.together.domain.repository.UserRepository
+import example.beechang.together.domain.repository.ReportRepository
 import javax.inject.Singleton
 
 @Module
@@ -33,4 +35,10 @@ abstract class RepositoryModule {
     abstract fun bindsSignallingRepository(
         signallingRepository: SignallingRepositoryImpl
     ): SignallingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindsReportRepository(
+        reportRepository: ReportRepositoryImpl
+    ): ReportRepository
 }
