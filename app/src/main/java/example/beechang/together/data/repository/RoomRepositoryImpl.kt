@@ -1,6 +1,5 @@
 package example.beechang.together.data.repository
 
-import example.beechang.together.data.response.RoomNotifyContentsBlockResponse
 import example.beechang.together.data.response.handler.mapSuccessOrProvideError
 import example.beechang.together.data.websocket.RoomDataSource
 import example.beechang.together.data.websocket.WebSocketConnectionState
@@ -9,6 +8,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
 import example.beechang.together.domain.data.mapToge
+import example.beechang.together.domain.model.ContentsBlockNotification
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
@@ -112,8 +112,9 @@ class RoomRepositoryImpl @Inject constructor(
             .mapToge { it.toParticipant() }
     }
 
-    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<RoomNotifyContentsBlockResponse>> {
+    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<ContentsBlockNotification>> {
         return roomDataSource.receiveRoomNotifyContentsBlock()
+            .mapToge { it.toContentsBlockNotification() }
     }
 
     override suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>> {
