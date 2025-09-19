@@ -59,7 +59,7 @@ class CallSignallingViewModel @Inject constructor(
     private val receiveChangingMicUseCase: ReceiveChangingMicUseCase,
     private val receiveChangingCameraUseCase: ReceiveChangingCameraUseCase,
     private val receiveContentsBlockUseCase: ReceiveContentsBlockUseCase,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallSignallingState, CallSignallingEvent, CallSignallingEffect>(
     savedStateHandle, CallSignallingState(), CALL_SIGNALLING_STATE
 ) {
@@ -443,9 +443,18 @@ class CallSignallingViewModel @Inject constructor(
         receiveContentsBlockUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
+                    updateState {
+                        copy(participants = participants.updateParticipant(res.blockedUserId) {
+                            it.copy(
+                                isContentBlocked = true,
+                                isShowBlockIndicator = res.isShowBlockIndicator
+                            )
+                        })
+                    }
+
                     sendEffect(
                         CallSignallingEffect.NotifyContentsBlock(
-                            blockedUserId = res.contentsBlockUserId,
+                            blockedUserId = res.blockedUserId,
                             isShowBlockIndicator = res.isShowBlockIndicator
                         )
                     )
@@ -456,7 +465,7 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun LinkedHashMap<String, RoomParticipantUi>.updateParticipant(
         userId: String,
-        update: (RoomParticipantUi) -> RoomParticipantUi
+        update: (RoomParticipantUi) -> RoomParticipantUi,
     ): LinkedHashMap<String, RoomParticipantUi> {
         return LinkedHashMap(this).apply {
             get(userId)?.let { put(userId, update(it)) }
@@ -481,7 +490,7 @@ data class CallSignallingState(
     val isEnabledCamera: Boolean = true,
     val isEnabledMic: Boolean = true,
     val isSpeakerMuted: Boolean = false,
-    val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf()
+    val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf(),
 ) : Parcelable, UiState {
     fun toParticipantList() = participants.values.toList()
 }
@@ -504,11 +513,11 @@ sealed interface CallSignallingEvent : UiEvent {
 sealed interface CallSignallingEffect : UiEffect {
     data class UpdatedCallRoomParticipant(
         val updatedUser: RoomParticipantUi,
-        val isJoined: Boolean
+        val isJoined: Boolean,
     ) : CallSignallingEffect
 
     data class NotifyContentsBlock(
         val blockedUserId: String,
-        val isShowBlockIndicator: Boolean
+        val isShowBlockIndicator: Boolean,
     ) : CallSignallingEffect
 }

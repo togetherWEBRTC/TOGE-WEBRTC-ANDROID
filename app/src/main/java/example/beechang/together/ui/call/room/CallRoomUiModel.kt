@@ -16,7 +16,9 @@ data class RoomParticipantUi(
     val isMicrophoneOn: Boolean = true,
     val isCameraOn: Boolean = true,
     val isHandRaised: Boolean = false,
-    val isSpeaking: Boolean = false
+    val isSpeaking: Boolean = false,
+    val isContentBlocked: Boolean = false,
+    val isShowBlockIndicator: Boolean = false,
 ) : Parcelable {
     fun getProfileFullUrl(): String {
         return BuildConfig.RES_URL + profileUrl
@@ -43,7 +45,9 @@ fun RoomParticipant.toUi(): RoomParticipantUi {
         isOwner = isOwner,
         isMicrophoneOn = isMicrophoneOn,
         isCameraOn = isCameraOn,
-        isHandRaised = isHandRaised
+        isHandRaised = isHandRaised,
+        isContentBlocked = isContentBlocked,
+        isShowBlockIndicator = isShowBlockIndicator
     )
 }
 

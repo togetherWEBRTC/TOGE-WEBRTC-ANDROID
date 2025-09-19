@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -177,29 +178,50 @@ fun ParticipantCallingView(
             }
         )
 
-        if (!participant.isCameraOn) {
+        if (!participant.isCameraOn || participant.isContentBlocked) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(0.4f)
-                        .aspectRatio(1f)
-                        .clip(CircleShape)
-                        .align(Alignment.Center)
-                        .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
-                ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(participant.getProfileFullUrl())
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                if (participant.isContentBlocked) { // 차단된 사용자
+                    if (participant.isShowBlockIndicator) { // 차단된 사용자 - 검은 화면만 또는 차단 아이콘
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize(0.4f)
+                                .aspectRatio(1f)
+                                .align(Alignment.Center)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_block_red),
+                                contentDescription = "Blocked User",
+                                tint = Color.Unspecified,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .align(Alignment.Center)
+                            )
+                        }
+                    }
+                } else {
+                    // 일반적인 카메라 꺼짐 상태 - 프로필 이미지 표시
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(0.4f)
+                            .aspectRatio(1f)
+                            .clip(CircleShape)
+                            .align(Alignment.Center)
+                            .border(2.dp, LocalTogeAppColor.current.grey999, CircleShape)
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(participant.getProfileFullUrl())
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -215,7 +237,7 @@ fun ParticipantCallingView(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
 
-            if (!participant.isMicrophoneOn) {
+            if (!participant.isMicrophoneOn && !participant.isContentBlocked) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_mic_off),
                     contentDescription = "Mic Off",
@@ -227,7 +249,11 @@ fun ParticipantCallingView(
             }
 
             Text(
-                text = participant.name,
+                text = if (participant.isContentBlocked && participant.isShowBlockIndicator) {
+                    stringResource(R.string.blocked_user)
+                } else {
+                    participant.name
+                },
                 color = LocalTogeAppColor.current.white,
                 style = MaterialTheme.typography.bodySmall,
             )
