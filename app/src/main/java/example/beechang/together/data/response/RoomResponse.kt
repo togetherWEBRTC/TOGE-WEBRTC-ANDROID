@@ -173,3 +173,10 @@ data class RoomNotifyChangingCameraStatusResponse(
         isHandRaised = participants.isHandRaised
     )
 }
+
+@Serializable
+data class RoomNotifyContentsBlockResponse(
+    @SerialName("name") val name: String,
+    @SerialName("contentsBlockUserId") val contentsBlockUserId: String,
+    @SerialName("isShowBlockIndicator") val isShowBlockIndicator: Boolean,
+)

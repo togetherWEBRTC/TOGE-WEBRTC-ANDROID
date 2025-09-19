@@ -1,5 +1,6 @@
 package example.beechang.together.domain.repository
 
+import example.beechang.together.data.response.RoomNotifyContentsBlockResponse
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomConnectionState
@@ -16,13 +17,14 @@ interface RoomRepository {
     suspend fun requestDecisionWaitingEnter(
         roomCode: String,
         targetUserId: String,
-        isApprove: Boolean
+        isApprove: Boolean,
     ): TogeResult<Boolean>
 
     suspend fun getRoomParticipant(
         roomCode: String,
-        isIncludingMySelf: Boolean
+        isIncludingMySelf: Boolean,
     ): TogeResult<List<RoomParticipant>>
+
     suspend fun expelMemberFromRoom(roomCode: String, targetUserId: String): TogeResult<Boolean>
 
     suspend fun changeMicStatus(roomCode: String, isMicrophoneOn: Boolean): TogeResult<Boolean>
@@ -33,6 +35,7 @@ interface RoomRepository {
     suspend fun receiveRoomUpdatingParticipant(): Flow<TogeResult<UpdatedRoomParticipant>>
     suspend fun receiveRoomNotifyMicStatus(): Flow<TogeResult<RoomParticipant>>
     suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomParticipant>>
+    suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<RoomNotifyContentsBlockResponse>>
     suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>>
     suspend fun receiveRoomConnectionState(): Flow<RoomConnectionState>
 }

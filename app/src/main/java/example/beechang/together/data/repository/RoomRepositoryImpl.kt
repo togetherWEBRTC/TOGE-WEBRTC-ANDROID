@@ -1,5 +1,6 @@
 package example.beechang.together.data.repository
 
+import example.beechang.together.data.response.RoomNotifyContentsBlockResponse
 import example.beechang.together.data.response.handler.mapSuccessOrProvideError
 import example.beechang.together.data.websocket.RoomDataSource
 import example.beechang.together.data.websocket.WebSocketConnectionState
@@ -109,6 +110,10 @@ class RoomRepositoryImpl @Inject constructor(
     override suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomParticipant>> {
         return roomDataSource.receiveRoomNotifyCameraStatus()
             .mapToge { it.toParticipant() }
+    }
+
+    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<RoomNotifyContentsBlockResponse>> {
+        return roomDataSource.receiveRoomNotifyContentsBlock()
     }
 
     override suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>> {

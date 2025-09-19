@@ -10,6 +10,7 @@ import example.beechang.together.domain.usecase.room.ChangeMicStatusUseCase
 import example.beechang.together.domain.usecase.room.GetRoomParticipantUseCase
 import example.beechang.together.domain.usecase.room.ReceiveChangingCameraUseCase
 import example.beechang.together.domain.usecase.room.ReceiveChangingMicUseCase
+import example.beechang.together.domain.usecase.room.ReceiveContentsBlockUseCase
 import example.beechang.together.domain.usecase.room.ReceiveUpdatingRoomParticipantUseCase
 import example.beechang.together.domain.usecase.signalling.ReceiveAnswerUseCase
 import example.beechang.together.domain.usecase.signalling.ReceiveIceCandidateUseCase
@@ -57,6 +58,7 @@ class CallSignallingViewModel @Inject constructor(
     private val changeCameraSuatusUseCase: ChangeCameraSuatusUseCase,
     private val receiveChangingMicUseCase: ReceiveChangingMicUseCase,
     private val receiveChangingCameraUseCase: ReceiveChangingCameraUseCase,
+    private val receiveContentsBlockUseCase: ReceiveContentsBlockUseCase,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<CallSignallingState, CallSignallingEvent, CallSignallingEffect>(
     savedStateHandle, CallSignallingState(), CALL_SIGNALLING_STATE
@@ -134,6 +136,7 @@ class CallSignallingViewModel @Inject constructor(
         listeningIceCandidate()
         liseningChangingMic()
         listeningChangingCamera()
+        listeningContentsBlock()
     }
 
     private fun prepareUserInfo() = viewModelScope.launch {
@@ -436,6 +439,20 @@ class CallSignallingViewModel @Inject constructor(
             )
     }
 
+    private fun listeningContentsBlock() = viewModelScope.launch {
+        receiveContentsBlockUseCase.invoke()
+            .collectInViewModel(
+                onSuccess = { res ->
+                    sendEffect(
+                        CallSignallingEffect.NotifyContentsBlock(
+                            blockedUserId = res.contentsBlockUserId,
+                            isShowBlockIndicator = res.isShowBlockIndicator
+                        )
+                    )
+                }
+            )
+    }
+
 
     private fun LinkedHashMap<String, RoomParticipantUi>.updateParticipant(
         userId: String,
@@ -488,5 +505,10 @@ sealed interface CallSignallingEffect : UiEffect {
     data class UpdatedCallRoomParticipant(
         val updatedUser: RoomParticipantUi,
         val isJoined: Boolean
+    ) : CallSignallingEffect
+
+    data class NotifyContentsBlock(
+        val blockedUserId: String,
+        val isShowBlockIndicator: Boolean
     ) : CallSignallingEffect
 }
