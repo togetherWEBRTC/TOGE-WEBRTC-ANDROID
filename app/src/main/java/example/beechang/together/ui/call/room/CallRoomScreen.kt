@@ -573,6 +573,7 @@ fun CallRoomScreen(
                     myUserId = signallingState.myUserId,
                     participants = signallingState.participants,
                     webRtcData = wrtcState.webRtcDataForParticipant,
+                    userInteractions = signallingState.userInteractions,
                     layoutType = layoutType,
                     eglBase = wrtcState.eglBase,
                     onParticipantSwap = { userId1, userId2 -> },

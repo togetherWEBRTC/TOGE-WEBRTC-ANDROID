@@ -42,6 +42,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import example.beechang.together.R
 import example.beechang.together.ui.call.room.RoomParticipantUi
+import example.beechang.together.ui.call.room.RoomUserInteractionUi
 import example.beechang.together.ui.call.room.VideoScaleType
 import example.beechang.together.ui.theme.LocalTogeAppColor
 import example.beechang.together.ui.utils.WebRtcLifecycleHandler
@@ -57,6 +58,7 @@ fun ParticipantCallingView(
     eglBase: EglBase?,
     webRtcData: WebRtcData,
     participant: RoomParticipantUi,
+    userInteraction: RoomUserInteractionUi? = null,
     scaleType: VideoScaleType = VideoScaleType.ASPECT_FILL,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -178,15 +180,15 @@ fun ParticipantCallingView(
             }
         )
 
-        if (!participant.isCameraOn || participant.isContentBlocked) {
+        if (!participant.isCameraOn || userInteraction?.isContentBlocked == true) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
                     .clip(RoundedCornerShape(8.dp))
             ) {
-                if (participant.isContentBlocked) { // 차단된 사용자
-                    if (participant.isShowBlockIndicator) { // 차단된 사용자 - 검은 화면만 또는 차단 아이콘
+                if (userInteraction?.isContentBlocked == true) { // 차단된 사용자
+                    if (userInteraction.isShowBlockIndicator) { // 차단된 사용자 - 검은 화면만 또는 차단 아이콘
                         Box(
                             modifier = Modifier
                                 .fillMaxSize(0.4f)
@@ -237,7 +239,7 @@ fun ParticipantCallingView(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
 
-            if (!participant.isMicrophoneOn && !participant.isContentBlocked) {
+            if (!participant.isMicrophoneOn && userInteraction?.isContentBlocked != true) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_mic_off),
                     contentDescription = "Mic Off",
@@ -249,7 +251,7 @@ fun ParticipantCallingView(
             }
 
             Text(
-                text = if (participant.isContentBlocked && participant.isShowBlockIndicator) {
+                text = if (userInteraction?.isContentBlocked == true && userInteraction.isShowBlockIndicator) {
                     stringResource(R.string.blocked_user)
                 } else {
                     participant.name

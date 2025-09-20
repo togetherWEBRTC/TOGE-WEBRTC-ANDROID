@@ -444,17 +444,21 @@ class CallSignallingViewModel @Inject constructor(
             .collectInViewModel(
                 onSuccess = { res ->
                     updateState {
-                        copy(participants = participants.updateParticipant(res.blockedUserId) {
-                            it.copy(
-                                isContentBlocked = true,
-                                isShowBlockIndicator = res.isShowBlockIndicator
-                            )
-                        })
+                        val updatedInteractions = LinkedHashMap(userInteractions)
+                        updatedInteractions[res.targetUserId] = RoomUserInteractionUi(
+                            targetUserId = res.targetUserId,
+                            isContentBlocked = res.isContentBlocked,
+                            isShowBlockIndicator = res.isShowBlockIndicator
+                        )
+                        copy(userInteractions = updatedInteractions)
                     }
+
+                    // 차단된 사용자와의 피어 커넥션 제거 (오디오/비디오 연결 차단)
+                    webRtcManager.processActionAsync(RemoveParticipant(res.targetUserId))
 
                     sendEffect(
                         CallSignallingEffect.NotifyContentsBlock(
-                            blockedUserId = res.blockedUserId,
+                            blockedUserId = res.targetUserId,
                             isShowBlockIndicator = res.isShowBlockIndicator
                         )
                     )
@@ -491,6 +495,7 @@ data class CallSignallingState(
     val isEnabledMic: Boolean = true,
     val isSpeakerMuted: Boolean = false,
     val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf(),
+    val userInteractions: LinkedHashMap<String, RoomUserInteractionUi> = linkedMapOf(),
 ) : Parcelable, UiState {
     fun toParticipantList() = participants.values.toList()
 }
