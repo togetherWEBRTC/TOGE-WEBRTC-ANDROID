@@ -8,7 +8,7 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
 import example.beechang.together.domain.data.mapToge
-import example.beechang.together.domain.model.ContentsBlockNotification
+import example.beechang.together.domain.model.RoomUserInteraction
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
@@ -112,9 +112,9 @@ class RoomRepositoryImpl @Inject constructor(
             .mapToge { it.toParticipant() }
     }
 
-    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<ContentsBlockNotification>> {
+    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<RoomUserInteraction>> {
         return roomDataSource.receiveRoomNotifyContentsBlock()
-            .mapToge { it.toContentsBlockNotification() }
+            .mapToge { it.toRoomUserInteraction() }
     }
 
     override suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>> {

@@ -1,6 +1,6 @@
 package example.beechang.together.data.response
 
-import example.beechang.together.domain.model.ContentsBlockNotification
+import example.beechang.together.domain.model.RoomUserInteraction
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomIceCandidate
 import example.beechang.together.domain.model.RoomParticipant
@@ -181,8 +181,9 @@ data class RoomNotifyContentsBlockResponse(
     @SerialName("contentsBlockUserId") val contentsBlockUserId: String,
     @SerialName("isShowBlockIndicator") val isShowBlockIndicator: Boolean,
 ) {
-    fun toContentsBlockNotification() = ContentsBlockNotification(
-        blockedUserId = contentsBlockUserId,
+    fun toRoomUserInteraction() = RoomUserInteraction(
+        targetUserId = contentsBlockUserId,
+        isContentBlocked = true,
         isShowBlockIndicator = isShowBlockIndicator
     )
 }

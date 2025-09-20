@@ -9,8 +9,6 @@ data class RoomParticipant(
     val isMicrophoneOn: Boolean = false,
     val isCameraOn: Boolean = false,
     val isHandRaised: Boolean = false,
-    val isContentBlocked: Boolean = false,
-    val isShowBlockIndicator: Boolean = false,
 )
 
 data class RoomWaitingMembers(
@@ -45,9 +43,11 @@ data class UpdatedRoomParticipant(
     val isJoined: Boolean = false,
 )
 
-data class ContentsBlockNotification(
-    val blockedUserId: String,
-    val isShowBlockIndicator: Boolean,
+
+data class RoomUserInteraction(
+    val targetUserId: String,
+    val isContentBlocked: Boolean = false,
+    val isShowBlockIndicator: Boolean = false,
 )
 
 enum class RoomConnectionState {
