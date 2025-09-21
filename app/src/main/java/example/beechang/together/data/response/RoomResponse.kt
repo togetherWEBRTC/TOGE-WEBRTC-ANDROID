@@ -32,14 +32,8 @@ data class RoomMemberResponse(
     @SerialName("userInteractions") val userInteractions: List<RoomUserInteractionResponse>? = null,
 ) : TogeResponse {
     fun toRoomParticipant() = participants.map { it.toRoomParticipant() }
-
-    fun toRoomUserInteractions() = userInteractions?.map {
-        RoomUserInteraction(
-            targetUserId = it.targetUserId,
-            isContentBlocked = it.isContentBlocked,
-            isShowBlockIndicator = it.isShowBlockIndicator
-        )
-    } ?: emptyList()
+    fun toRoomUserInteractions() =
+        userInteractions?.map { it.toRoomUserInteraction() } ?: emptyList()
 }
 
 @Serializable
@@ -148,13 +142,7 @@ data class RoomNotifyUpdateParticipantResponse(
         participants = participants.map { it.toRoomParticipant() },
         updatedUser = changedUser.toUserInfo(),
         isJoined = isJoined,
-        joinedUserInteractionForMe = joinedUserInteractionForMe?.let {
-            RoomUserInteraction(
-                targetUserId = it.targetUserId,
-                isContentBlocked = it.isContentBlocked,
-                isShowBlockIndicator = it.isShowBlockIndicator
-            )
-        }
+        joinedUserInteractionForMe = joinedUserInteractionForMe?.toRoomUserInteraction()
     )
 }
 
@@ -210,4 +198,10 @@ data class RoomUserInteractionResponse(
     @SerialName("targetUserId") val targetUserId: String,
     @SerialName("isContentBlocked") val isContentBlocked: Boolean,
     @SerialName("isShowBlockIndicator") val isShowBlockIndicator: Boolean,
-)
+) {
+    fun toRoomUserInteraction() = RoomUserInteraction(
+        targetUserId = targetUserId,
+        isContentBlocked = isContentBlocked,
+        isShowBlockIndicator = isShowBlockIndicator
+    )
+}
