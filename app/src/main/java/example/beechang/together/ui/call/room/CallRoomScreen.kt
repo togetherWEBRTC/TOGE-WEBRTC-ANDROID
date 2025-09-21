@@ -508,6 +508,7 @@ fun CallRoomScreen(
         roomCode = roomState.roomCode,
         waitingParticipants = roomState.waitingParticipants,
         participants = signallingState.toParticipantList(),
+        userInteractions = signallingState.userInteractions,
         onDismissRequest = { onEventUpdateParticipantBottomSheetState(false) },
         onApproveWaiting = { userId -> onEventDecideWaiting(userId, true) },
         onRejectWaiting = { userId -> onEventDecideWaiting(userId, false) },
