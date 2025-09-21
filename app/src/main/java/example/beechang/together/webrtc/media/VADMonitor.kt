@@ -17,6 +17,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.webrtc.PeerConnection
 import org.webrtc.RTCStatsReport
+import java.util.concurrent.ConcurrentHashMap
 
 
 interface VADMonitor {
@@ -46,8 +47,8 @@ class VADMonitorImpl : VADMonitor {
     override val speakingStatusFlow: StateFlow<Map<String, Boolean>> =
         _speakingStatusFlow.asStateFlow()
 
-    private val peerConnectionMap = mutableMapOf<String, PeerConnection>()
-    private val audioLevelMap = mutableMapOf<String, AudioLevelState>()
+    private val peerConnectionMap = ConcurrentHashMap<String, PeerConnection>()
+    private val audioLevelMap = ConcurrentHashMap<String, AudioLevelState>()
 
     private data class AudioLevelState(
         var isSpeaking: Boolean = false,
