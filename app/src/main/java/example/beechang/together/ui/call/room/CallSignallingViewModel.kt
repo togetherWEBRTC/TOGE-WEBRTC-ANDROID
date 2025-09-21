@@ -245,12 +245,25 @@ class CallSignallingViewModel @Inject constructor(
     private fun getRoomParticipant(successCallBack: () -> Unit) = viewModelScope.launch {
         val roomCode = currentState.roomCode
         getRoomParticipantUseCase.invoke(roomCode = roomCode, isIncludingMySelf = true)
-            .onSuccess { participants ->
-                val currentMap = LinkedHashMap<String, RoomParticipantUi>(currentState.participants)
-                participants.forEach { roomParticipant ->
-                    currentMap[roomParticipant.userId] = roomParticipant.toUi()
+            .onSuccess { roomParticipantInfo ->
+                val currentParticipantsMap =
+                    LinkedHashMap<String, RoomParticipantUi>(currentState.participants)
+                roomParticipantInfo.participants.forEach { roomParticipant ->
+                    currentParticipantsMap[roomParticipant.userId] = roomParticipant.toUi()
                 }
-                updateState { copy(participants = currentMap) }
+
+                val currentInteractionsMap =
+                    LinkedHashMap<String, RoomUserInteractionUi>(currentState.userInteractions)
+                roomParticipantInfo.userInteractions.forEach { userInteraction ->
+                    currentInteractionsMap[userInteraction.targetUserId] = userInteraction.toUi()
+                }
+
+                updateState {
+                    copy(
+                        participants = currentParticipantsMap,
+                        userInteractions = currentInteractionsMap
+                    )
+                }
                 successCallBack()
             }
     }
@@ -264,12 +277,21 @@ class CallSignallingViewModel @Inject constructor(
                     val isJoined = updatedRoomParticipant.isJoined
                     updateState {
                         val updatedParticipants = LinkedHashMap(participants)
+                        val updatedInteractions = LinkedHashMap(userInteractions)
+
                         if (isJoined) {
                             updatedParticipants[userId] = updatedUser
+                            updatedRoomParticipant.joinedUserInteractionForMe?.let { interaction ->
+                                updatedInteractions[interaction.targetUserId] = interaction.toUi()
+                            }
                         } else {
                             updatedParticipants.remove(userId)
                         }
-                        copy(participants = updatedParticipants)
+
+                        copy(
+                            participants = updatedParticipants,
+                            userInteractions = updatedInteractions
+                        )
                     }
 
                     if (!isJoined) { //remove webrtc user
@@ -302,12 +324,15 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun sendRtcReady() = viewModelScope.launch {
         val roomCode = currentState.roomCode
-        currentState.participants.forEach {
-            if (it.value.userId != currentState.myUserId) {
+        currentState.participants.forEach { participant ->
+            val userId = participant.value.userId
+            val isBlocked = currentState.userInteractions[userId]?.isContentBlocked == true
+
+            if (userId != currentState.myUserId && !isBlocked) {
                 webRtcManager.processAction(
                     CreatePeerConnection(
                         localUserId = currentState.myUserId,
-                        remoteUserId = it.value.userId,
+                        remoteUserId = userId,
                         role = PeerConnectionRole.Answerer
                     )
                 )
@@ -324,14 +349,19 @@ class CallSignallingViewModel @Inject constructor(
         receiveRtcReadyUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    viewModelScope.launch {
-                        webRtcManager.processActionAsync(
-                            CreatePeerConnection(
-                                localUserId = currentState.myUserId,
-                                remoteUserId = res.userId,
-                                role = PeerConnectionRole.Offerer
+                    val isBlocked =
+                        currentState.userInteractions[res.userId]?.isContentBlocked == true
+
+                    if (!isBlocked) {
+                        viewModelScope.launch {
+                            webRtcManager.processActionAsync(
+                                CreatePeerConnection(
+                                    localUserId = currentState.myUserId,
+                                    remoteUserId = res.userId,
+                                    role = PeerConnectionRole.Offerer
+                                )
                             )
-                        )
+                        }
                     }
                 }
             )

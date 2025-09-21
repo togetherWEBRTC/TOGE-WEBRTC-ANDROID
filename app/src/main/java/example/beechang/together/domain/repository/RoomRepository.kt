@@ -5,6 +5,7 @@ import example.beechang.together.domain.model.RoomUserInteraction
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
+import example.beechang.together.domain.model.RoomParticipantInfo
 import example.beechang.together.domain.model.RoomWaitingMembers
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import kotlinx.coroutines.flow.Flow
@@ -23,7 +24,7 @@ interface RoomRepository {
     suspend fun getRoomParticipant(
         roomCode: String,
         isIncludingMySelf: Boolean,
-    ): TogeResult<List<RoomParticipant>>
+    ): TogeResult<RoomParticipantInfo>
 
     suspend fun expelMemberFromRoom(roomCode: String, targetUserId: String): TogeResult<Boolean>
 

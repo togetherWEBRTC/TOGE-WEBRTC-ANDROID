@@ -41,6 +41,7 @@ data class UpdatedRoomParticipant(
     val participants: List<RoomParticipant> = emptyList(),
     val updatedUser: UserInfo,
     val isJoined: Boolean = false,
+    val joinedUserInteractionForMe : RoomUserInteraction? = null,
 )
 
 
@@ -48,6 +49,11 @@ data class RoomUserInteraction(
     val targetUserId: String,
     val isContentBlocked: Boolean = false,
     val isShowBlockIndicator: Boolean = false,
+)
+
+data class RoomParticipantInfo(
+    val participants: List<RoomParticipant>,
+    val userInteractions: List<RoomUserInteraction>
 )
 
 enum class RoomConnectionState {

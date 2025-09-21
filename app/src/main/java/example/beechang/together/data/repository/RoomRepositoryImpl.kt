@@ -12,6 +12,7 @@ import example.beechang.together.domain.model.RoomUserInteraction
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
+import example.beechang.together.domain.model.RoomParticipantInfo
 import example.beechang.together.domain.model.RoomWaitingMembers
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import example.beechang.together.domain.repository.RoomRepository
@@ -56,11 +57,16 @@ class RoomRepositoryImpl @Inject constructor(
     override suspend fun getRoomParticipant(
         roomCode: String,
         isIncludingMySelf: Boolean,
-    ): TogeResult<List<RoomParticipant>> =
+    ): TogeResult<RoomParticipantInfo> =
         roomDataSource.getRoomParticipant(
             roomCode = roomCode,
             isIncludingMySelf = isIncludingMySelf
-        ).map { it.toRoomParticipant() }
+        ).map {
+            RoomParticipantInfo(
+                participants = it.toRoomParticipant(),
+                userInteractions = it.toRoomUserInteractions()
+            )
+        }
 
     override suspend fun expelMemberFromRoom(
         roomCode: String,
