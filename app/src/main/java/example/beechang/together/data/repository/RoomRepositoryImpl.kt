@@ -8,9 +8,11 @@ import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
 import example.beechang.together.domain.data.mapToge
+import example.beechang.together.domain.model.RoomUserInteraction
 import example.beechang.together.domain.model.RoomCode
 import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
+import example.beechang.together.domain.model.RoomParticipantInfo
 import example.beechang.together.domain.model.RoomWaitingMembers
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import example.beechang.together.domain.repository.RoomRepository
@@ -55,11 +57,16 @@ class RoomRepositoryImpl @Inject constructor(
     override suspend fun getRoomParticipant(
         roomCode: String,
         isIncludingMySelf: Boolean,
-    ): TogeResult<List<RoomParticipant>> =
+    ): TogeResult<RoomParticipantInfo> =
         roomDataSource.getRoomParticipant(
             roomCode = roomCode,
             isIncludingMySelf = isIncludingMySelf
-        ).map { it.toRoomParticipant() }
+        ).map {
+            RoomParticipantInfo(
+                participants = it.toRoomParticipant(),
+                userInteractions = it.toRoomUserInteractions()
+            )
+        }
 
     override suspend fun expelMemberFromRoom(
         roomCode: String,
@@ -109,6 +116,11 @@ class RoomRepositoryImpl @Inject constructor(
     override suspend fun receiveRoomNotifyCameraStatus(): Flow<TogeResult<RoomParticipant>> {
         return roomDataSource.receiveRoomNotifyCameraStatus()
             .mapToge { it.toParticipant() }
+    }
+
+    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<RoomUserInteraction>> {
+        return roomDataSource.receiveRoomNotifyContentsBlock()
+            .mapToge { it.toRoomUserInteraction() }
     }
 
     override suspend fun receiveRoomNotifyBeExpelled(): Flow<TogeResult<Boolean>> {

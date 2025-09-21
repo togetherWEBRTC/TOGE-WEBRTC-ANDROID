@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import example.beechang.together.BuildConfig
 import example.beechang.together.data.http.api.UserApi
+import example.beechang.together.data.http.api.ReportApi
 import example.beechang.together.data.websocket.SocketIOWebSocketClient
 import example.beechang.together.data.websocket.WebSocketClient
 import javax.inject.Singleton
@@ -48,6 +49,12 @@ class RetrofitModule {
     @Singleton
     fun provideUserApi(retrofit: Retrofit): UserApi {
         return retrofit.create(UserApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReportApi(retrofit: Retrofit): ReportApi {
+        return retrofit.create(ReportApi::class.java)
     }
 }
 

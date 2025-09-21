@@ -3,6 +3,7 @@ package example.beechang.together.ui.call.room
 import android.os.Parcelable
 import example.beechang.together.BuildConfig
 import example.beechang.together.domain.model.RoomParticipant
+import example.beechang.together.domain.model.RoomUserInteraction
 import example.beechang.together.domain.model.UserInfo
 import kotlinx.parcelize.Parcelize
 
@@ -16,12 +17,19 @@ data class RoomParticipantUi(
     val isMicrophoneOn: Boolean = true,
     val isCameraOn: Boolean = true,
     val isHandRaised: Boolean = false,
-    val isSpeaking: Boolean = false
+    val isSpeaking: Boolean = false,
 ) : Parcelable {
     fun getProfileFullUrl(): String {
         return BuildConfig.RES_URL + profileUrl
     }
 }
+
+@Parcelize
+data class RoomUserInteractionUi(
+    val targetUserId: String,
+    val isContentBlocked: Boolean = false,
+    val isShowBlockIndicator: Boolean = false,
+) : Parcelable
 
 enum class CallLayoutType {
     SINGLE,
@@ -52,6 +60,14 @@ fun UserInfo.toRoomParticipantUi(): RoomParticipantUi {
         userId = userId,
         name = nickname,
         profileUrl = profileImageUrl
+    )
+}
+
+fun RoomUserInteraction.toUi(): RoomUserInteractionUi {
+    return RoomUserInteractionUi(
+        targetUserId = targetUserId,
+        isContentBlocked = isContentBlocked,
+        isShowBlockIndicator = isShowBlockIndicator
     )
 }
 

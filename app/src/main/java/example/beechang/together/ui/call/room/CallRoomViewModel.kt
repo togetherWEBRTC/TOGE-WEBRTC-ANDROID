@@ -12,6 +12,9 @@ import example.beechang.together.domain.usecase.room.ExpelMemberUseCase
 import example.beechang.together.domain.usecase.room.ReceiveExpelledNotifyUseCase
 import example.beechang.together.domain.usecase.room.ReceiveRoomDisconnectedUseCase
 import example.beechang.together.domain.usecase.room.ReceiveWaitingNotifyUseCase
+import example.beechang.together.domain.usecase.report.ReportUserUseCase
+import example.beechang.together.domain.model.ReportReason
+import example.beechang.together.domain.model.ReportType
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
 import example.beechang.together.ui.utils.UiEvent
@@ -29,16 +32,18 @@ class CallRoomViewModel @Inject constructor(
     private val receiveExpelledNotifyUseCase: ReceiveExpelledNotifyUseCase,
     private val receiveRoomDisconnectedUseCase: ReceiveRoomDisconnectedUseCase,
     private val expelMemberUseCase: ExpelMemberUseCase,
+    private val reportUserUseCase: ReportUserUseCase,
     savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallRoomState, CallRoomEvent, CallRoomEffect>(
     savedStateHandle, CallRoomState(), CALL_ROOM_STATE
 ) {
     init {
         val isHost = savedStateHandle.get<Boolean>("isHost") ?: false
-        if (savedStateHandle.get<String>("roomCode").isNullOrEmpty()) {
+        val roomCodeFromArgs = savedStateHandle.get<String>("roomCode")
+        if (roomCodeFromArgs.isNullOrEmpty()) {
             updateState { copy(isHost = isHost) }
         } else {
-            updateState { copy(roomCode = roomCode, isHost = isHost) }
+            updateState { copy(roomCode = roomCodeFromArgs, isHost = isHost) }
         }
 
         listeningWaitingNotify()
@@ -66,6 +71,14 @@ class CallRoomViewModel @Inject constructor(
 
             is CallRoomEvent.ExpelMember -> {
                 expelMember(targetMemberId = event.targetMemberId)
+            }
+
+            is CallRoomEvent.ReportUser -> {
+                reportUser(
+                    reportedUserId = event.reportedUserId,
+                    reasonCategory = event.reasonCategory,
+                    reasonDetails = event.reasonDetails
+                )
             }
         }
     }
@@ -108,6 +121,28 @@ class CallRoomViewModel @Inject constructor(
             },
             onFinally = { updateState { copy(isLoading = false) } }
         )
+
+    private fun reportUser(
+        reportedUserId: String,
+        reasonCategory: ReportReason,
+        reasonDetails: String?
+    ) = handleEvent(
+        onStart = { updateState { copy(isLoading = true) } },
+        action = {
+            val roomCode = currentState.roomCode
+            reportUserUseCase(
+                reportedUserId = reportedUserId,
+                reportTargetContentType = ReportType.CALL,
+                reportTargetContentId = roomCode,
+                reasonCategory = reasonCategory,
+                reasonDetails = reasonDetails
+            )
+        },
+        onSuccess = {
+            sendEffect(CallRoomEffect.SuccessReportUser)
+        },
+        onFinally = { updateState { copy(isLoading = false) } }
+    )
 
     private fun listeningWaitingNotify() = viewModelScope.launch {
         receiveWaitingNotifyUseCase.invoke()
@@ -168,6 +203,11 @@ sealed interface CallRoomEvent : UiEvent {
     ) : CallRoomEvent // 웨이팅 승인 및 거절 요청
 
     data class ExpelMember(val targetMemberId: String) : CallRoomEvent
+    data class ReportUser(
+        val reportedUserId: String,
+        val reasonCategory: ReportReason,
+        val reasonDetails: String?
+    ) : CallRoomEvent
 }
 
 sealed interface CallRoomEffect : UiEffect {
@@ -178,4 +218,5 @@ sealed interface CallRoomEffect : UiEffect {
     object SuccessDisconnectRoom : CallRoomEffect
     object SuccessExpelMember : CallRoomEffect
     object BeExpelledRoom : CallRoomEffect
+    object SuccessReportUser : CallRoomEffect
 }

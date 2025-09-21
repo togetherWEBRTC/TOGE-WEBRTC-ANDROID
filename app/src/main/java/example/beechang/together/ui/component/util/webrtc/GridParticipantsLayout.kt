@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import example.beechang.together.ui.call.room.RoomParticipantUi
+import example.beechang.together.ui.call.room.RoomUserInteractionUi
 import example.beechang.together.ui.call.room.VideoScaleType
 import example.beechang.together.webrtc.WebRtcData
 import org.webrtc.EglBase
@@ -20,6 +21,7 @@ fun GridParticipantsLayout(
     participants: List<RoomParticipantUi>,
     eglBase: EglBase?,
     webRtcData: Map<String, WebRtcData>,
+    userInteractions: Map<String, RoomUserInteractionUi> = emptyMap(),
     onParticipantSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -46,6 +48,7 @@ fun GridParticipantsLayout(
                         participant = item,
                         webRtcData = webRtcData[item.userId] ?: WebRtcData(),
                         eglBase = eglBase,
+                        userInteraction = userInteractions[item.userId],
                         scaleType = VideoScaleType.ASPECT_FILL,
                         modifier = Modifier.fillMaxSize()
                     )

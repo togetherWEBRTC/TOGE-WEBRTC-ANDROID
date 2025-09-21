@@ -8,13 +8,13 @@ data class RoomParticipant(
     val isOwner: Boolean = false,
     val isMicrophoneOn: Boolean = false,
     val isCameraOn: Boolean = false,
-    val isHandRaised: Boolean = false
+    val isHandRaised: Boolean = false,
 )
 
 data class RoomWaitingMembers(
     val waitingList: List<UserInfo> = emptyList(),
     val updatedUser: UserInfo,
-    val isAdded: Boolean = false
+    val isAdded: Boolean = false,
 )
 
 data class RoomCode(
@@ -40,7 +40,20 @@ data class RoomIceCandidate(
 data class UpdatedRoomParticipant(
     val participants: List<RoomParticipant> = emptyList(),
     val updatedUser: UserInfo,
-    val isJoined: Boolean = false
+    val isJoined: Boolean = false,
+    val joinedUserInteractionForMe : RoomUserInteraction? = null,
+)
+
+
+data class RoomUserInteraction(
+    val targetUserId: String,
+    val isContentBlocked: Boolean = false,
+    val isShowBlockIndicator: Boolean = false,
+)
+
+data class RoomParticipantInfo(
+    val participants: List<RoomParticipant>,
+    val userInteractions: List<RoomUserInteraction>
 )
 
 enum class RoomConnectionState {

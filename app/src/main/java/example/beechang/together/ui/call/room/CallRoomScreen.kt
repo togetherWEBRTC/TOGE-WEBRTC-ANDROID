@@ -35,6 +35,10 @@ import example.beechang.together.ui.call.room.CallSignallingEvent.*
 import example.beechang.together.ui.component.util.webrtc.VideoCallLayout
 import example.beechang.together.ui.component.bottombar.CallingBottomBar
 import example.beechang.together.ui.component.bottomsheet.ParticipantBottomSheet
+import example.beechang.together.ui.component.bottomsheet.CallingMoreBottomSheet
+import example.beechang.together.ui.component.bottomsheet.ReportUserBottomSheet
+import example.beechang.together.ui.component.bottomsheet.ReportUserInfoUi
+import example.beechang.together.domain.model.ReportReason
 import example.beechang.together.ui.component.dialog.TogeDialog
 import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
 import example.beechang.together.ui.component.scaffold.AnimatedTogeScaffold
@@ -44,6 +48,7 @@ import example.beechang.together.ui.utils.LocalWebRtcServiceManager
 import example.beechang.together.ui.utils.PermissionHandlerStatus
 import example.beechang.together.ui.utils.rememberMultiPermissionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun CallRoomRouter(
@@ -59,9 +64,14 @@ fun CallRoomRouter(
     val snackbarHostState = remember { SnackbarHostState() }
     val webRtcServiceManager = LocalWebRtcServiceManager.current
     var participantInfoToExpel by remember { mutableStateOf<RoomParticipantUi?>(null) }
+
     /* BottomSheetState */
     val participantBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isShowParticipantBottomSheet by remember { mutableStateOf(false) }
+    val moreBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    var isShowMoreBottomSheet by remember { mutableStateOf(false) }
+    val reportBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var isShowReportBottomSheet by remember { mutableStateOf(false) }
 
     /* DialogStates */
     var isShowDialogForWrongRoomCode by remember { mutableStateOf(false) }
@@ -70,6 +80,11 @@ fun CallRoomRouter(
     var isShowDialogConnectionDisconnected by remember { mutableStateOf(false) }
     var isShowDialogExpelParticipant by remember { mutableStateOf(false) }
     var isShowDialogBeExpelled by remember { mutableStateOf(false) }
+
+    /* Report States */
+    var preSelectedUserId by remember { mutableStateOf<String?>(null) }
+    var isShowReportConfirmDialog by remember { mutableStateOf(false) }
+    var reportData by remember { mutableStateOf<Triple<String, ReportReason, String>?>(null) }
 
     val permissionHandler =
         rememberMultiPermissionHandler(
@@ -200,6 +215,10 @@ fun CallRoomRouter(
                     )
                 }
 
+                CallRoomEffect.SuccessReportUser -> {
+                    snackbarHostState.showSnackbar(context.getString(R.string.report_user_completed))
+                }
+
                 is CallRoomEffect.BeExpelledRoom -> {
                     webRtcServiceManager.release()
 //                    roomViewModel.WebSocketDisconnect 시 알림을 별도로 받고 자동으로 뒤로가기 처리 -> 얼럿을 못 볼 수 있으니 얼럿 누르는 시점에서 별도로 처리
@@ -237,19 +256,27 @@ fun CallRoomRouter(
         modifier = modifier,
         snackbarHostState = snackbarHostState,
         participantBottomSheetState = participantBottomSheetState,
+        moreBottomSheetState = moreBottomSheetState,
+        reportBottomSheetState = reportBottomSheetState,
         /* STATE */
-        roomState = roomState, signallingState = signallingState, wrtcState = wrtcState,
+        roomState = roomState,
+        signallingState = signallingState,
+        wrtcState = wrtcState,
         isCameraOn = cameraPermissionData?.status == PermissionHandlerStatus.GRANTED && signallingState.participants[signallingState.myUserId]?.isCameraOn == true,
         isMicOn = micPermissionData?.status == PermissionHandlerStatus.GRANTED && signallingState.participants[signallingState.myUserId]?.isMicrophoneOn == true,
         participantInfoToExpel = participantInfoToExpel,
         isSpeakerMuted = signallingState.isSpeakerMuted,
         isShowDialogExpelParticipant = isShowDialogExpelParticipant,
         isShowParticipantBottomSheet = isShowParticipantBottomSheet,
+        isShowMoreBottomSheet = isShowMoreBottomSheet,
+        isShowReportBottomSheet = isShowReportBottomSheet,
         isShowDialogForWrongRoomCode = isShowDialogForWrongRoomCode,
         isShowDialogDisconnectRoom = isShowDialogDisconnectRoom,
         isShowDialogConnectionDisconnected = isShowDialogConnectionDisconnected,
         isShowDialogPermission = isShowDialogPermission,
         isShowDialogBeExpelled = isShowDialogBeExpelled,
+        isShowReportConfirmDialog = isShowReportConfirmDialog,
+        preSelectedUserId = preSelectedUserId,
         /* EVENT */
         onEventDisconnect = {
             webRtcServiceManager.release()
@@ -268,6 +295,8 @@ fun CallRoomRouter(
             signallingViewModel.onEvent(ToggleSpeakerMute(isMuted))
         },
         onEventUpdateParticipantBottomSheetState = { bool -> isShowParticipantBottomSheet = bool },
+        onEventUpdateMoreBottomSheetState = { bool -> isShowMoreBottomSheet = bool },
+        onEventUpdateReportBottomSheetState = { bool -> isShowReportBottomSheet = bool },
         onEventDecideWaiting = { userId, isApprove ->
             roomViewModel.onEvent(
                 CallRoomEvent.DecideWaitingApproval(userId = userId, isApprove = isApprove)
@@ -290,6 +319,48 @@ fun CallRoomRouter(
         onEventDismissBeExpelledDialog = {
             isShowDialogBeExpelled = false
             roomViewModel.onEvent(CallRoomEvent.WebSocketDisconnect)
+        },
+        onEventReportBadUser = {
+            val otherParticipants = signallingState.toParticipantList()
+                .filter { it.userId != signallingState.myUserId }
+                .filter { participant ->
+                    val userInteraction = signallingState.userInteractions[participant.userId]
+                    userInteraction?.isShowBlockIndicator != true
+                }
+            if (otherParticipants.isEmpty()) {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.error_no_report_participants))
+                }
+            } else {
+                preSelectedUserId = null
+                isShowReportBottomSheet = true
+            }
+        },
+        onEventReportErrorAndInquiry = {
+            // TODO: 오류 신고 및 문의 기능 구현
+        },
+        onEventShowReportUser = { userId ->
+            preSelectedUserId = userId
+            isShowReportBottomSheet = true
+        },
+        onEventConfirmReport = { targetUserId, reason, description ->
+            reportData = Triple(targetUserId, reason, description)
+            isShowReportConfirmDialog = true
+            isShowReportBottomSheet = false
+        },
+        onEventShowReportConfirmDialog = { show -> isShowReportConfirmDialog = show },
+        onEventSubmitReport = {
+            reportData?.let { (targetUserId, reason, description) ->
+                roomViewModel.onEvent(
+                    CallRoomEvent.ReportUser(
+                        reportedUserId = targetUserId,
+                        reasonCategory = reason,
+                        reasonDetails = description
+                    )
+                )
+            }
+            isShowReportConfirmDialog = false
+            reportData = null
         }
     )
 }
@@ -300,6 +371,8 @@ fun CallRoomScreen(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     participantBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    moreBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
+    reportBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     /* STATE */
     roomState: CallRoomState,
     signallingState: CallSignallingState,
@@ -310,11 +383,15 @@ fun CallRoomScreen(
     isSpeakerMuted: Boolean = false,
     isShowDialogExpelParticipant: Boolean = false,
     isShowParticipantBottomSheet: Boolean = false,
+    isShowMoreBottomSheet: Boolean = false,
+    isShowReportBottomSheet: Boolean = false,
     isShowDialogForWrongRoomCode: Boolean = false,
     isShowDialogConnectionDisconnected: Boolean = false,
     isShowDialogDisconnectRoom: Boolean = false,
     isShowDialogPermission: Boolean = false,
     isShowDialogBeExpelled: Boolean = false,
+    isShowReportConfirmDialog: Boolean = false,
+    preSelectedUserId: String? = null,
     /* EVENT */
     onEventDisconnect: () -> Unit = {},
     onEventDismissDisconnectDialog: () -> Unit = {},
@@ -327,11 +404,19 @@ fun CallRoomScreen(
     onEventToggleOnOffMic: (Boolean) -> Unit = { },
     onEventToggleSpeakerMute: (Boolean) -> Unit = { },
     onEventUpdateParticipantBottomSheetState: (Boolean) -> Unit = { },
+    onEventUpdateMoreBottomSheetState: (Boolean) -> Unit = { },
+    onEventUpdateReportBottomSheetState: (Boolean) -> Unit = { },
     onEventDecideWaiting: (String/*userId*/, Boolean/*isApprove*/) -> Unit = { _, _ -> },
     onEventShowExpelDialog: (String/*userId*/) -> Unit = {},
     onEventDismissExpelDialog: () -> Unit = {},
     onEventExpelParticipant: (String/*targetUserId*/) -> Unit = {},
     onEventDismissBeExpelledDialog: () -> Unit = {},
+    onEventReportBadUser: () -> Unit = {},
+    onEventReportErrorAndInquiry: () -> Unit = {},
+    onEventShowReportUser: (String) -> Unit = {},
+    onEventConfirmReport: (String/*reported id*/, ReportReason, String/*detail from reporter*/) -> Unit = { _, _, _ -> },
+    onEventShowReportConfirmDialog: (Boolean) -> Unit = {},
+    onEventSubmitReport: () -> Unit = {},
 ) {
 
     val layoutType = when (signallingState.participants.size) {
@@ -398,12 +483,30 @@ fun CallRoomScreen(
         title = stringResource(R.string.exclude_participant_title),
         content = stringResource(
             id = R.string.confirm_exclude_participant_message,
-            participantInfoToExpel?.name ?: stringResource(R.string.participant_title)
+            participantInfoToExpel?.let { participant ->
+                val userInteraction = signallingState.userInteractions[participant.userId]
+                if (userInteraction?.isShowBlockIndicator == true) {
+                    stringResource(R.string.blocked_user)
+                } else {
+                    participant.name
+                }
+            } ?: stringResource(R.string.participant_title)
         ),
         onConfirm = {
             participantInfoToExpel?.userId?.let { onEventExpelParticipant(it) }
         },
         onDismiss = { onEventDismissExpelDialog() }
+    )
+
+    /* Report Confirm Dialog */
+    TogeDialog(
+        isShowDialog = isShowReportConfirmDialog,
+        title = stringResource(R.string.report_user_title),
+        content = stringResource(R.string.report_confirm_message),
+        onConfirm = { onEventSubmitReport() },
+        onDismiss = {
+            onEventShowReportConfirmDialog(false)
+        }
     )
 
     /* Bottom Sheet */
@@ -416,10 +519,36 @@ fun CallRoomScreen(
         roomCode = roomState.roomCode,
         waitingParticipants = roomState.waitingParticipants,
         participants = signallingState.toParticipantList(),
+        userInteractions = signallingState.userInteractions,
         onDismissRequest = { onEventUpdateParticipantBottomSheetState(false) },
         onApproveWaiting = { userId -> onEventDecideWaiting(userId, true) },
         onRejectWaiting = { userId -> onEventDecideWaiting(userId, false) },
         onExpelParticipant = { userId -> onEventShowExpelDialog(userId) }
+    )
+
+    CallingMoreBottomSheet(
+        modifier = modifier,
+        modalSheetState = moreBottomSheetState,
+        isShow = isShowMoreBottomSheet,
+        onDismissRequest = { onEventUpdateMoreBottomSheetState(false) },
+        onReportBadUser = onEventReportBadUser,
+        onReportErrorAndInquiry = onEventReportErrorAndInquiry
+    )
+
+    ReportUserBottomSheet(
+        modifier = modifier,
+        modalSheetState = reportBottomSheetState,
+        isShow = isShowReportBottomSheet,
+        participants = signallingState.toParticipantList()
+            .filter { it.userId != signallingState.myUserId }
+            .filter { participant ->
+                val userInteraction = signallingState.userInteractions[participant.userId]
+                userInteraction?.isShowBlockIndicator != true
+            }
+            .map { ReportUserInfoUi(it.userId, it.name, it.profileUrl) },
+        preSelectedUserId = preSelectedUserId,
+        onDismissRequest = { onEventUpdateReportBottomSheetState(false) },
+        onConfirmReport = onEventConfirmReport
     )
 
     /* UI */
@@ -443,7 +572,8 @@ fun CallRoomScreen(
                 onClickCamera = { onEventToggleOnOffCamera(!isCameraOn) },
                 onClickMic = { onEventToggleOnOffMic(!isMicOn) },
                 onClickParticipant = { onEventUpdateParticipantBottomSheetState(true)/* ParticipantBottomSheet */ },
-                onClickChat = { }
+                onClickChat = { },
+                onClickMore = { onEventUpdateMoreBottomSheetState(true)/* CallingMoreBottomSheet */ }
             )
         }
     ) {
@@ -459,6 +589,7 @@ fun CallRoomScreen(
                     myUserId = signallingState.myUserId,
                     participants = signallingState.participants,
                     webRtcData = wrtcState.webRtcDataForParticipant,
+                    userInteractions = signallingState.userInteractions,
                     layoutType = layoutType,
                     eglBase = wrtcState.eglBase,
                     onParticipantSwap = { userId1, userId2 -> },

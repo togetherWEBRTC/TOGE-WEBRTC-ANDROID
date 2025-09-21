@@ -10,6 +10,7 @@ import example.beechang.together.domain.usecase.room.ChangeMicStatusUseCase
 import example.beechang.together.domain.usecase.room.GetRoomParticipantUseCase
 import example.beechang.together.domain.usecase.room.ReceiveChangingCameraUseCase
 import example.beechang.together.domain.usecase.room.ReceiveChangingMicUseCase
+import example.beechang.together.domain.usecase.room.ReceiveContentsBlockUseCase
 import example.beechang.together.domain.usecase.room.ReceiveUpdatingRoomParticipantUseCase
 import example.beechang.together.domain.usecase.signalling.ReceiveAnswerUseCase
 import example.beechang.together.domain.usecase.signalling.ReceiveIceCandidateUseCase
@@ -57,7 +58,8 @@ class CallSignallingViewModel @Inject constructor(
     private val changeCameraSuatusUseCase: ChangeCameraSuatusUseCase,
     private val receiveChangingMicUseCase: ReceiveChangingMicUseCase,
     private val receiveChangingCameraUseCase: ReceiveChangingCameraUseCase,
-    savedStateHandle: SavedStateHandle
+    private val receiveContentsBlockUseCase: ReceiveContentsBlockUseCase,
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallSignallingState, CallSignallingEvent, CallSignallingEffect>(
     savedStateHandle, CallSignallingState(), CALL_SIGNALLING_STATE
 ) {
@@ -134,6 +136,7 @@ class CallSignallingViewModel @Inject constructor(
         listeningIceCandidate()
         liseningChangingMic()
         listeningChangingCamera()
+        listeningContentsBlock()
     }
 
     private fun prepareUserInfo() = viewModelScope.launch {
@@ -242,12 +245,25 @@ class CallSignallingViewModel @Inject constructor(
     private fun getRoomParticipant(successCallBack: () -> Unit) = viewModelScope.launch {
         val roomCode = currentState.roomCode
         getRoomParticipantUseCase.invoke(roomCode = roomCode, isIncludingMySelf = true)
-            .onSuccess { participants ->
-                val currentMap = LinkedHashMap<String, RoomParticipantUi>(currentState.participants)
-                participants.forEach { roomParticipant ->
-                    currentMap[roomParticipant.userId] = roomParticipant.toUi()
+            .onSuccess { roomParticipantInfo ->
+                val currentParticipantsMap =
+                    LinkedHashMap<String, RoomParticipantUi>(currentState.participants)
+                roomParticipantInfo.participants.forEach { roomParticipant ->
+                    currentParticipantsMap[roomParticipant.userId] = roomParticipant.toUi()
                 }
-                updateState { copy(participants = currentMap) }
+
+                val currentInteractionsMap =
+                    LinkedHashMap<String, RoomUserInteractionUi>(currentState.userInteractions)
+                roomParticipantInfo.userInteractions.forEach { userInteraction ->
+                    currentInteractionsMap[userInteraction.targetUserId] = userInteraction.toUi()
+                }
+
+                updateState {
+                    copy(
+                        participants = currentParticipantsMap,
+                        userInteractions = currentInteractionsMap
+                    )
+                }
                 successCallBack()
             }
     }
@@ -261,12 +277,21 @@ class CallSignallingViewModel @Inject constructor(
                     val isJoined = updatedRoomParticipant.isJoined
                     updateState {
                         val updatedParticipants = LinkedHashMap(participants)
+                        val updatedInteractions = LinkedHashMap(userInteractions)
+
                         if (isJoined) {
                             updatedParticipants[userId] = updatedUser
+                            updatedRoomParticipant.joinedUserInteractionForMe?.let { interaction ->
+                                updatedInteractions[interaction.targetUserId] = interaction.toUi()
+                            }
                         } else {
                             updatedParticipants.remove(userId)
                         }
-                        copy(participants = updatedParticipants)
+
+                        copy(
+                            participants = updatedParticipants,
+                            userInteractions = updatedInteractions
+                        )
                     }
 
                     if (!isJoined) { //remove webrtc user
@@ -299,12 +324,15 @@ class CallSignallingViewModel @Inject constructor(
 
     private fun sendRtcReady() = viewModelScope.launch {
         val roomCode = currentState.roomCode
-        currentState.participants.forEach {
-            if (it.value.userId != currentState.myUserId) {
+        currentState.participants.forEach { participant ->
+            val userId = participant.value.userId
+            val isBlocked = currentState.userInteractions[userId]?.isContentBlocked == true
+
+            if (userId != currentState.myUserId && !isBlocked) {
                 webRtcManager.processAction(
                     CreatePeerConnection(
                         localUserId = currentState.myUserId,
-                        remoteUserId = it.value.userId,
+                        remoteUserId = userId,
                         role = PeerConnectionRole.Answerer
                     )
                 )
@@ -321,14 +349,19 @@ class CallSignallingViewModel @Inject constructor(
         receiveRtcReadyUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { res ->
-                    viewModelScope.launch {
-                        webRtcManager.processActionAsync(
-                            CreatePeerConnection(
-                                localUserId = currentState.myUserId,
-                                remoteUserId = res.userId,
-                                role = PeerConnectionRole.Offerer
+                    val isBlocked =
+                        currentState.userInteractions[res.userId]?.isContentBlocked == true
+
+                    if (!isBlocked) {
+                        viewModelScope.launch {
+                            webRtcManager.processActionAsync(
+                                CreatePeerConnection(
+                                    localUserId = currentState.myUserId,
+                                    remoteUserId = res.userId,
+                                    role = PeerConnectionRole.Offerer
+                                )
                             )
-                        )
+                        }
                     }
                 }
             )
@@ -436,10 +469,37 @@ class CallSignallingViewModel @Inject constructor(
             )
     }
 
+    private fun listeningContentsBlock() = viewModelScope.launch {
+        receiveContentsBlockUseCase.invoke()
+            .collectInViewModel(
+                onSuccess = { res ->
+                    updateState {
+                        val updatedInteractions = LinkedHashMap(userInteractions)
+                        updatedInteractions[res.targetUserId] = RoomUserInteractionUi(
+                            targetUserId = res.targetUserId,
+                            isContentBlocked = res.isContentBlocked,
+                            isShowBlockIndicator = res.isShowBlockIndicator
+                        )
+                        copy(userInteractions = updatedInteractions)
+                    }
+
+                    // 차단된 사용자와의 피어 커넥션 제거 (오디오/비디오 연결 차단)
+                    webRtcManager.processActionAsync(RemoveParticipant(res.targetUserId))
+
+                    sendEffect(
+                        CallSignallingEffect.NotifyContentsBlock(
+                            blockedUserId = res.targetUserId,
+                            isShowBlockIndicator = res.isShowBlockIndicator
+                        )
+                    )
+                }
+            )
+    }
+
 
     private fun LinkedHashMap<String, RoomParticipantUi>.updateParticipant(
         userId: String,
-        update: (RoomParticipantUi) -> RoomParticipantUi
+        update: (RoomParticipantUi) -> RoomParticipantUi,
     ): LinkedHashMap<String, RoomParticipantUi> {
         return LinkedHashMap(this).apply {
             get(userId)?.let { put(userId, update(it)) }
@@ -464,7 +524,8 @@ data class CallSignallingState(
     val isEnabledCamera: Boolean = true,
     val isEnabledMic: Boolean = true,
     val isSpeakerMuted: Boolean = false,
-    val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf()
+    val participants: LinkedHashMap<String, RoomParticipantUi> = linkedMapOf(),
+    val userInteractions: LinkedHashMap<String, RoomUserInteractionUi> = linkedMapOf(),
 ) : Parcelable, UiState {
     fun toParticipantList() = participants.values.toList()
 }
@@ -487,6 +548,11 @@ sealed interface CallSignallingEvent : UiEvent {
 sealed interface CallSignallingEffect : UiEffect {
     data class UpdatedCallRoomParticipant(
         val updatedUser: RoomParticipantUi,
-        val isJoined: Boolean
+        val isJoined: Boolean,
+    ) : CallSignallingEffect
+
+    data class NotifyContentsBlock(
+        val blockedUserId: String,
+        val isShowBlockIndicator: Boolean,
     ) : CallSignallingEffect
 }
