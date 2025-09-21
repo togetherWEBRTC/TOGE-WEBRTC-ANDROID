@@ -143,5 +143,5 @@
     <string name="report_cancel">취소</string>
     <string name="report_confirm_message">정말로 신고하시겠습니까?\n신고된 사용자의 콘텐츠는 더 이상 보이지 않습니다.</string>
     <string name="error_no_report_participants">신고가능한 유저가 없습니다.</string>
-    <string name="report_user_completed">신고가 완료되었습니다.\n해당 참여자의 콘텐츠는 지금부터 보이지 않습니다.</string>
+    <string name="report_user_completed">신고가 완료되었습니다.\n해당 참여자의 차단되며 콘텐츠는 지금부터 보이지 않습니다.\n차단 해제는 별도 문의 바랍니다.</string>
 </resources>
