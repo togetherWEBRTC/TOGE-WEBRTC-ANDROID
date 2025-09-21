@@ -41,7 +41,7 @@ import example.beechang.together.domain.model.ReportReason
 import example.beechang.together.ui.component.util.CircularImage
 import example.beechang.together.ui.theme.LocalTogeAppColor
 
-data class ReportUserInfo(
+data class ReportUserInfoUi(
     val userId: String,
     val name: String,
     val profileUrl: String,
@@ -56,7 +56,7 @@ fun ReportUserBottomSheet(
     modifier: Modifier = Modifier,
     modalSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     isShow: Boolean = false,
-    participants: List<ReportUserInfo> = listOf(),
+    participants: List<ReportUserInfoUi> = listOf(),
     preSelectedUserId: String? = null,
     onDismissRequest: () -> Unit = {},
     onConfirmReport: (String/*reported user id*/, ReportReason/* reason */, String/* discription */) -> Unit = { _, _, _ -> },
@@ -81,7 +81,7 @@ fun ReportUserBottomSheet(
 
 @Composable
 private fun ReportUserContent(
-    participants: List<ReportUserInfo>,
+    participants: List<ReportUserInfoUi>,
     preSelectedUserId: String?,
     onDismissRequest: () -> Unit,
     onConfirmReport: (String, ReportReason, String) -> Unit,
@@ -277,7 +277,7 @@ private fun ReportUserContent(
 fun PrevReportUserBottomSheet() {
     ReportUserContent(
         participants = listOf(
-            ReportUserInfo(
+            ReportUserInfoUi(
                 userId = "user1",
                 name = "USER NAME",
                 profileUrl = ""

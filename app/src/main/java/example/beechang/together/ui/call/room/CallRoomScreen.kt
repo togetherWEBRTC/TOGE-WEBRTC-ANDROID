@@ -37,7 +37,7 @@ import example.beechang.together.ui.component.bottombar.CallingBottomBar
 import example.beechang.together.ui.component.bottomsheet.ParticipantBottomSheet
 import example.beechang.together.ui.component.bottomsheet.CallingMoreBottomSheet
 import example.beechang.together.ui.component.bottomsheet.ReportUserBottomSheet
-import example.beechang.together.ui.component.bottomsheet.ReportUserInfo
+import example.beechang.together.ui.component.bottomsheet.ReportUserInfoUi
 import example.beechang.together.domain.model.ReportReason
 import example.beechang.together.ui.component.dialog.TogeDialog
 import example.beechang.together.ui.component.dialog.TogeOnlyConfirmBtnDialog
@@ -323,9 +323,13 @@ fun CallRoomRouter(
         onEventReportBadUser = {
             val otherParticipants = signallingState.toParticipantList()
                 .filter { it.userId != signallingState.myUserId }
+                .filter { participant ->
+                    val userInteraction = signallingState.userInteractions[participant.userId]
+                    userInteraction?.isShowBlockIndicator != true
+                }
             if (otherParticipants.isEmpty()) {
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.error_no_participants))
+                    snackbarHostState.showSnackbar(context.getString(R.string.error_no_report_participants))
                 }
             } else {
                 preSelectedUserId = null
@@ -537,7 +541,11 @@ fun CallRoomScreen(
         isShow = isShowReportBottomSheet,
         participants = signallingState.toParticipantList()
             .filter { it.userId != signallingState.myUserId }
-            .map { ReportUserInfo(it.userId, it.name, it.profileUrl) },
+            .filter { participant ->
+                val userInteraction = signallingState.userInteractions[participant.userId]
+                userInteraction?.isShowBlockIndicator != true
+            }
+            .map { ReportUserInfoUi(it.userId, it.name, it.profileUrl) },
         preSelectedUserId = preSelectedUserId,
         onDismissRequest = { onEventUpdateReportBottomSheetState(false) },
         onConfirmReport = onEventConfirmReport
