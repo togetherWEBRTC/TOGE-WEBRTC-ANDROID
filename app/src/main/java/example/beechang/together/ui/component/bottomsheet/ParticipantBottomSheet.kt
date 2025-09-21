@@ -268,7 +268,7 @@ fun RoomParticipantList(
             }
         }
 
-        if (participant.userId != myUserId) {
+        if (participant.userId != myUserId && isHost) {
             var isMenuExpanded by remember { mutableStateOf(false) }
 
             Box(modifier = Modifier.offset(x = 16.dp)) {
@@ -284,22 +284,20 @@ fun RoomParticipantList(
                     expanded = isMenuExpanded,
                     onDismissRequest = { isMenuExpanded = false }
                 ) {
-                    if (isHost) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = stringResource(R.string.exclude_participant_title),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = TextAlign.Center
-                                )
-                            },
-                            onClick = {
-                                onExpelMember()
-                                isMenuExpanded = false
-                            }
-                        )
-                    }
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.exclude_participant_title),
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        },
+                        onClick = {
+                            onExpelMember()
+                            isMenuExpanded = false
+                        }
+                    )
                 }
             }
         }
