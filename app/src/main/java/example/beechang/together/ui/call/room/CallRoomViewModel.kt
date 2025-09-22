@@ -13,8 +13,10 @@ import example.beechang.together.domain.usecase.room.ReceiveExpelledNotifyUseCas
 import example.beechang.together.domain.usecase.room.ReceiveRoomDisconnectedUseCase
 import example.beechang.together.domain.usecase.room.ReceiveWaitingNotifyUseCase
 import example.beechang.together.domain.usecase.report.ReportUserUseCase
+import example.beechang.together.domain.usecase.report.CreateInquiryUseCase
 import example.beechang.together.domain.model.ReportReason
 import example.beechang.together.domain.model.ReportType
+import example.beechang.together.domain.model.InquiryCategory
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
 import example.beechang.together.ui.utils.UiEvent
@@ -33,6 +35,7 @@ class CallRoomViewModel @Inject constructor(
     private val receiveRoomDisconnectedUseCase: ReceiveRoomDisconnectedUseCase,
     private val expelMemberUseCase: ExpelMemberUseCase,
     private val reportUserUseCase: ReportUserUseCase,
+    private val createInquiryUseCase: CreateInquiryUseCase,
     savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallRoomState, CallRoomEvent, CallRoomEffect>(
     savedStateHandle, CallRoomState(), CALL_ROOM_STATE
@@ -80,6 +83,13 @@ class CallRoomViewModel @Inject constructor(
                     reasonDetails = event.reasonDetails
                 )
             }
+
+            is CallRoomEvent.CreateInquiry -> {
+                createInquiry(
+                    category = event.category,
+                    content = event.content
+                )
+            }
         }
     }
 
@@ -125,7 +135,7 @@ class CallRoomViewModel @Inject constructor(
     private fun reportUser(
         reportedUserId: String,
         reasonCategory: ReportReason,
-        reasonDetails: String?
+        reasonDetails: String?,
     ) = handleEvent(
         onStart = { updateState { copy(isLoading = true) } },
         action = {
@@ -141,6 +151,16 @@ class CallRoomViewModel @Inject constructor(
         onSuccess = {
             sendEffect(CallRoomEffect.SuccessReportUser)
         },
+        onFinally = { updateState { copy(isLoading = false) } }
+    )
+
+    private fun createInquiry(
+        category: InquiryCategory,
+        content: String,
+    ) = handleEvent(
+        onStart = { updateState { copy(isLoading = true) } },
+        action = { createInquiryUseCase.invoke(content = content, category = category) },
+        onSuccess = { sendEffect(CallRoomEffect.SuccessCreateInquiry) },
         onFinally = { updateState { copy(isLoading = false) } }
     )
 
@@ -206,7 +226,12 @@ sealed interface CallRoomEvent : UiEvent {
     data class ReportUser(
         val reportedUserId: String,
         val reasonCategory: ReportReason,
-        val reasonDetails: String?
+        val reasonDetails: String?,
+    ) : CallRoomEvent
+
+    data class CreateInquiry(
+        val category: InquiryCategory,
+        val content: String,
     ) : CallRoomEvent
 }
 
@@ -219,4 +244,5 @@ sealed interface CallRoomEffect : UiEffect {
     object SuccessExpelMember : CallRoomEffect
     object BeExpelledRoom : CallRoomEffect
     object SuccessReportUser : CallRoomEffect
+    object SuccessCreateInquiry : CallRoomEffect
 }

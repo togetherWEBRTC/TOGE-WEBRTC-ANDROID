@@ -30,12 +30,14 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
+import example.beechang.together.domain.model.InquiryCategory
 import example.beechang.together.ui.call.room.CallRoomEvent.*
 import example.beechang.together.ui.call.room.CallSignallingEvent.*
 import example.beechang.together.ui.component.util.webrtc.VideoCallLayout
 import example.beechang.together.ui.component.bottombar.CallingBottomBar
 import example.beechang.together.ui.component.bottomsheet.ParticipantBottomSheet
 import example.beechang.together.ui.component.bottomsheet.CallingMoreBottomSheet
+import example.beechang.together.ui.component.bottomsheet.InquiryBottomSheet
 import example.beechang.together.ui.component.bottomsheet.ReportUserBottomSheet
 import example.beechang.together.ui.component.bottomsheet.ReportUserInfoUi
 import example.beechang.together.domain.model.ReportReason
@@ -72,6 +74,8 @@ fun CallRoomRouter(
     var isShowMoreBottomSheet by remember { mutableStateOf(false) }
     val reportBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var isShowReportBottomSheet by remember { mutableStateOf(false) }
+    val inquiryBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var isShowInquiryBottomSheet by remember { mutableStateOf(false) }
 
     /* DialogStates */
     var isShowDialogForWrongRoomCode by remember { mutableStateOf(false) }
@@ -219,6 +223,10 @@ fun CallRoomRouter(
                     snackbarHostState.showSnackbar(context.getString(R.string.report_user_completed))
                 }
 
+                CallRoomEffect.SuccessCreateInquiry -> {
+                    snackbarHostState.showSnackbar(context.getString(R.string.inquiry_success_message))
+                }
+
                 is CallRoomEffect.BeExpelledRoom -> {
                     webRtcServiceManager.release()
 //                    roomViewModel.WebSocketDisconnect 시 알림을 별도로 받고 자동으로 뒤로가기 처리 -> 얼럿을 못 볼 수 있으니 얼럿 누르는 시점에서 별도로 처리
@@ -258,6 +266,7 @@ fun CallRoomRouter(
         participantBottomSheetState = participantBottomSheetState,
         moreBottomSheetState = moreBottomSheetState,
         reportBottomSheetState = reportBottomSheetState,
+        inquiryBottomSheetState = inquiryBottomSheetState,
         /* STATE */
         roomState = roomState,
         signallingState = signallingState,
@@ -270,6 +279,7 @@ fun CallRoomRouter(
         isShowParticipantBottomSheet = isShowParticipantBottomSheet,
         isShowMoreBottomSheet = isShowMoreBottomSheet,
         isShowReportBottomSheet = isShowReportBottomSheet,
+        isShowInquiryBottomSheet = isShowInquiryBottomSheet,
         isShowDialogForWrongRoomCode = isShowDialogForWrongRoomCode,
         isShowDialogDisconnectRoom = isShowDialogDisconnectRoom,
         isShowDialogConnectionDisconnected = isShowDialogConnectionDisconnected,
@@ -297,6 +307,11 @@ fun CallRoomRouter(
         onEventUpdateParticipantBottomSheetState = { bool -> isShowParticipantBottomSheet = bool },
         onEventUpdateMoreBottomSheetState = { bool -> isShowMoreBottomSheet = bool },
         onEventUpdateReportBottomSheetState = { bool -> isShowReportBottomSheet = bool },
+        onEventUpdateInquiryBottomSheetState = { bool -> isShowInquiryBottomSheet = bool },
+        onEventCreateInquiry = { category, content ->
+            roomViewModel.onEvent(CallRoomEvent.CreateInquiry(category, content))
+            isShowInquiryBottomSheet = false
+        },
         onEventDecideWaiting = { userId, isApprove ->
             roomViewModel.onEvent(
                 CallRoomEvent.DecideWaitingApproval(userId = userId, isApprove = isApprove)
@@ -337,7 +352,7 @@ fun CallRoomRouter(
             }
         },
         onEventReportErrorAndInquiry = {
-            // TODO: 오류 신고 및 문의 기능 구현
+            isShowInquiryBottomSheet = true
         },
         onEventShowReportUser = { userId ->
             preSelectedUserId = userId
@@ -373,6 +388,7 @@ fun CallRoomScreen(
     participantBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     moreBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
     reportBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    inquiryBottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     /* STATE */
     roomState: CallRoomState,
     signallingState: CallSignallingState,
@@ -385,6 +401,7 @@ fun CallRoomScreen(
     isShowParticipantBottomSheet: Boolean = false,
     isShowMoreBottomSheet: Boolean = false,
     isShowReportBottomSheet: Boolean = false,
+    isShowInquiryBottomSheet: Boolean = false,
     isShowDialogForWrongRoomCode: Boolean = false,
     isShowDialogConnectionDisconnected: Boolean = false,
     isShowDialogDisconnectRoom: Boolean = false,
@@ -406,6 +423,8 @@ fun CallRoomScreen(
     onEventUpdateParticipantBottomSheetState: (Boolean) -> Unit = { },
     onEventUpdateMoreBottomSheetState: (Boolean) -> Unit = { },
     onEventUpdateReportBottomSheetState: (Boolean) -> Unit = { },
+    onEventUpdateInquiryBottomSheetState: (Boolean) -> Unit = { },
+    onEventCreateInquiry: (InquiryCategory, String) -> Unit = { _, _ -> },
     onEventDecideWaiting: (String/*userId*/, Boolean/*isApprove*/) -> Unit = { _, _ -> },
     onEventShowExpelDialog: (String/*userId*/) -> Unit = {},
     onEventDismissExpelDialog: () -> Unit = {},
@@ -549,6 +568,14 @@ fun CallRoomScreen(
         preSelectedUserId = preSelectedUserId,
         onDismissRequest = { onEventUpdateReportBottomSheetState(false) },
         onConfirmReport = onEventConfirmReport
+    )
+
+    InquiryBottomSheet(
+        modifier = modifier,
+        modalSheetState = inquiryBottomSheetState,
+        isShow = isShowInquiryBottomSheet,
+        onDismissRequest = { onEventUpdateInquiryBottomSheetState(false) },
+        onConfirmInquiry = { category, content -> onEventCreateInquiry(category, content) }
     )
 
     /* UI */
