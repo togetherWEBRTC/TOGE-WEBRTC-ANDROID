@@ -23,8 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,14 +50,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import android.os.Build
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.zIndex
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
+import example.beechang.together.domain.model.InquiryCategory
 import example.beechang.together.domain.model.LoginState
 import example.beechang.together.ui.call.CallNavDestination
 import example.beechang.together.ui.component.bottombar.HomeBottomBar
+import example.beechang.together.ui.component.bottomsheet.InquiryBottomSheet
 import example.beechang.together.ui.component.button.TogeFloatingButtonWithIcon
 import example.beechang.together.ui.component.card.TogePermissionItem
 import example.beechang.together.ui.component.scaffold.TogeScaffold
+import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
 import example.beechang.together.ui.component.text.TogeClickableText
 import example.beechang.together.ui.component.topbar.HomeTopBar
 import example.beechang.together.ui.component.util.CircularImage
@@ -65,8 +74,8 @@ import example.beechang.together.ui.theme.LocalTogeAppColor
 import example.beechang.together.ui.user.UserNavDestination
 import example.beechang.together.ui.utils.PermissionHandlerStatus
 import example.beechang.together.ui.utils.rememberMultiPermissionHandler
-
 import kotlinx.coroutines.CoroutineScope
+
 
 @Composable
 fun HomeRouter(
@@ -105,6 +114,13 @@ fun HomeRouter(
                         isHost = event.isHost
                     )
                 }
+
+                HomeEffect.InquirySuccess -> {
+                    snackbarHostState.showSnackbar(
+                        message = context.getString(R.string.inquiry_success_message),
+                        duration = SnackbarDuration.Short
+                    )
+                }
             }
         }
     }
@@ -134,12 +150,16 @@ fun HomeRouter(
         state = uiState,
         isLoggedIn = loginState == LoginState.Login,
         isShowSkeletonUi = uiState.isShowSkeleton,
+        snackbarHostState = snackbarHostState,
         /* EVENT */
         onEventUpdateEnterRoomCode = { newText ->
             homeViewModel.onEvent(HomeEvent.UpdateEnterRoomCode(newText))
         },
         onEventEnterRoom = { homeViewModel.onEvent(HomeEvent.EnterRoom) },
         onEventCreateRoom = { homeViewModel.onEvent(HomeEvent.CrateRoom) },
+        onEventCreateInquiry = { category, content ->
+            homeViewModel.onEvent(HomeEvent.CreateInquiry(category, content))
+        },
         /* NAVIGATION */
         onMoveToLogin = { navController.navigate(UserNavDestination.LOGIN) },
         onMoveToMyPage = { navController.navigate(UserNavDestination.MYPAGE) }
@@ -154,10 +174,12 @@ fun HomeScreen(
     state: HomeState = HomeState(),
     isLoggedIn: Boolean = false,
     isShowSkeletonUi: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     /* EVENT */
     onEventUpdateEnterRoomCode: (String) -> Unit = {},
     onEventEnterRoom: () -> Unit = {},
     onEventCreateRoom: () -> Unit = {},
+    onEventCreateInquiry: (InquiryCategory, String/*content*/) -> Unit = { _, _ -> },
     /* NAVIGATION */
     onMoveToLogin: () -> Unit = {},
     onMoveToMyPage: () -> Unit = {},
@@ -165,6 +187,8 @@ fun HomeScreen(
     val context = LocalContext.current
     val localFocusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+
+    var showInquiryBottomSheet by remember { mutableStateOf(false) }
 
     val cameraPermissionStr = Manifest.permission.CAMERA
     val micPermissionStr = Manifest.permission.RECORD_AUDIO
@@ -193,6 +217,17 @@ fun HomeScreen(
         }
     }
 
+    InquiryBottomSheet(
+        isShow = showInquiryBottomSheet,
+        onDismissRequest = {
+            showInquiryBottomSheet = false
+        },
+        onConfirmInquiry = { category, content ->
+            onEventCreateInquiry(category, content)
+            showInquiryBottomSheet = false
+        }
+    )
+
     TogeScaffold(
         modifier = modifier
             .fillMaxSize()
@@ -203,6 +238,7 @@ fun HomeScreen(
                 })
             },
         contentPadding = PaddingValues(16.dp),
+        snackbarHost = { TogeSnackbarHost(hostState = snackbarHostState) },
         topBar = {
             HomeTopBar(
                 modifier = Modifier,
@@ -262,7 +298,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState),
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            InquiryFeedbackCard(onClick = { showInquiryBottomSheet = true })
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = stringResource(R.string.permission_call_required),
@@ -390,6 +428,47 @@ fun HomeScreen(
     }
 }
 
+@Composable
+private fun InquiryFeedbackCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+) {
+    ClickShrinkEffect(
+        shrinkFactor = 0.9f,
+        onClick = onClick
+    ) {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .padding(bottom = 4.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.2f)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.inquiry_feedback_message),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_touch),
+                    contentDescription = "touch",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun HomeBottomShimmer() {
