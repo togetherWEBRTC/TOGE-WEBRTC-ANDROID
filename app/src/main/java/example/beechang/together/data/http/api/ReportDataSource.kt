@@ -11,4 +11,10 @@ interface ReportDataSource {
         reasonCategory: String,
         reasonDetails: String?,
     ): TogeResult<BaseResponse>
+
+    suspend fun createInquiry(
+        userId: String,
+        content: String,
+        category: String,
+    ): TogeResult<BaseResponse>
 }

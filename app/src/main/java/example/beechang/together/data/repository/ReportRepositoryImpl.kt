@@ -3,6 +3,7 @@ package example.beechang.together.data.repository
 import example.beechang.together.data.http.api.ReportDataSource
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
+import example.beechang.together.domain.model.InquiryCategory
 import example.beechang.together.domain.model.ReportReason
 import example.beechang.together.domain.model.ReportType
 import example.beechang.together.domain.repository.ReportRepository
@@ -27,6 +28,18 @@ class ReportRepositoryImpl @Inject constructor(
             reportTargetContentId = reportTargetContentId,
             reasonCategory = reasonCategory.toCategoryFormat(),
             reasonDetails = reasonDetails
+        ).map { it.toSuccessBoolean() }
+    }
+
+    override suspend fun createInquiry(
+        userId: String,
+        content: String,
+        category: InquiryCategory,
+    ): TogeResult<Boolean> {
+        return reportDataSource.createInquiry(
+            userId = userId,
+            content = content,
+            category = category.code
         ).map { it.toSuccessBoolean() }
     }
 }

@@ -67,15 +67,14 @@ fun CallingMoreBottomSheet(
                     }
                 )
 
-//                TODO: 기능 구현 시 추가
-//                MoreMenuItem(
-//                    icon = R.drawable.ic_help,
-//                    text = stringResource(R.string.report_error_and_inquiry),
-//                    onClick = {
-//                        onReportErrorAndInquiry()
-//                        onDismissRequest()
-//                    }
-//                )
+                MoreMenuItem(
+                    icon = R.drawable.ic_help,
+                    text = stringResource(R.string.report_error_and_inquiry),
+                    onClick = {
+                        onReportErrorAndInquiry()
+                        onDismissRequest()
+                    }
+                )
             }
         }
     }

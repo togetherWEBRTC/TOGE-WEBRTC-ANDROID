@@ -5,9 +5,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import example.beechang.together.domain.usecase.room.ConnectRoomUseCase
+import example.beechang.together.domain.usecase.report.CreateInquiryUseCase
 import example.beechang.together.domain.usecase.user.GetLoginStateUseCase
 import example.beechang.together.domain.usecase.user.GetUserInfoUseCase
 import example.beechang.together.domain.usecase.user.UpdateAccessTokenUseCase
+import example.beechang.together.domain.model.InquiryCategory
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
 import example.beechang.together.ui.utils.UiEvent
@@ -22,6 +24,7 @@ class HomeViewModel @Inject constructor(
     private val getUserInfoUseCase: GetUserInfoUseCase,
     private val updateAccessTokenUseCase: UpdateAccessTokenUseCase,
     private val connectRoomUseCase: ConnectRoomUseCase,
+    private val createInquiryUseCase: CreateInquiryUseCase,
     savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     savedStateHandle, HomeState(), HOME_STATE
@@ -38,6 +41,10 @@ class HomeViewModel @Inject constructor(
 
             is HomeEvent.UpdateEnterRoomCode -> {
                 updateState { copy(enterRoomCode = event.code) }
+            }
+
+            is HomeEvent.CreateInquiry -> {
+                createInquiry(event.category, event.content)
             }
         }
     }
@@ -94,6 +101,13 @@ class HomeViewModel @Inject constructor(
             onFinally = { updateState { copy(isLoading = false) } }
         )
 
+    private fun createInquiry(category: InquiryCategory, content: String) =
+        handleEvent(
+            onStart = { updateState { copy(isLoading = true) } },
+            action = { createInquiryUseCase.invoke(content, category) },
+            onSuccess = { sendEffect(HomeEffect.InquirySuccess) },
+            onFinally = { updateState { copy(isLoading = false) } }
+        )
 
     companion object {
         private const val HOME_STATE = "homeState"
@@ -112,8 +126,10 @@ sealed interface HomeEvent : UiEvent {
     object CrateRoom : HomeEvent
     object EnterRoom : HomeEvent
     data class UpdateEnterRoomCode(val code: String) : HomeEvent
+    data class CreateInquiry(val category: InquiryCategory, val content: String) : HomeEvent
 }
 
 sealed interface HomeEffect : UiEffect {
     data class ReadyMoveToRoom(val roomCode: String, val isHost: Boolean) : HomeEffect
+    object InquirySuccess : HomeEffect
 }

@@ -35,11 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import example.beechang.together.BuildConfig
 import example.beechang.together.R
 import example.beechang.together.domain.model.ReportReason
 import example.beechang.together.ui.component.util.CircularImage
 import example.beechang.together.ui.theme.LocalTogeAppColor
+import example.beechang.together.ui.utils.getUiString
 
 data class ReportUserInfoUi(
     val userId: String,
@@ -93,6 +95,7 @@ private fun ReportUserContent(
     var description by remember { mutableStateOf("") }
 
     val reasonOptions = ReportReason.all()
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier.padding(horizontal = 16.dp),
@@ -175,7 +178,7 @@ private fun ReportUserContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TogeOutLineTextField(
-                        value = selectedReason.displayName,
+                        value = selectedReason.getUiString(context),
                         onValueChange = { },
                         readOnly = true,
                         labelText = stringResource(R.string.report_reason_label),
@@ -194,7 +197,7 @@ private fun ReportUserContent(
                     ) {
                         reasonOptions.forEach { reason ->
                             DropdownMenuItem(
-                                text = { Text(reason.displayName) },
+                                text = { Text(reason.getUiString(context)) },
                                 onClick = {
                                     selectedReason = reason
                                     reasonExpanded = false
