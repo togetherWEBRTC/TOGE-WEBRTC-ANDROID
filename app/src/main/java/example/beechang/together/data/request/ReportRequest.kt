@@ -11,3 +11,10 @@ data class ReportUserRequest(
     @SerialName("reasonCategory") val reasonCategory: String,
     @SerialName("reasonDetails") val reasonDetails: String?,
 )
+
+@Serializable
+data class CreateInquiryRequest(
+    @SerialName("userId") val userId: String,
+    @SerialName("content") val content: String,
+    @SerialName("category") val category: String,
+)
