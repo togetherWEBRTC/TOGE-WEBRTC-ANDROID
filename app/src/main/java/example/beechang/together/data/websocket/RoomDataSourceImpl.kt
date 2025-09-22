@@ -12,6 +12,7 @@ import example.beechang.together.data.response.RoomMemberResponse
 import example.beechang.together.data.response.RoomNotifyBasicResponse
 import example.beechang.together.data.response.RoomNotifyChangingCameraStatusResponse
 import example.beechang.together.data.response.RoomNotifyChangingMicStatusResponse
+import example.beechang.together.data.response.RoomNotifyContentsBlockResponse
 import example.beechang.together.data.response.RoomNotifyUpdateParticipantResponse
 import example.beechang.together.data.response.RoomNotifyWaitResponse
 import example.beechang.together.data.response.RoomNotifyWaitingResultResponse
@@ -166,6 +167,13 @@ class RoomDataSourceImpl @Inject constructor(
             webSocketClient = webSocketClient,
             eventName = SocketEventConstants.CALL_NOTIFY_CHANGE_CAMERA,
             resType = RoomNotifyChangingCameraStatusResponse.serializer()
+        )
+
+    override suspend fun receiveRoomNotifyContentsBlock(): Flow<TogeResult<RoomNotifyContentsBlockResponse>> =
+        socketEventToResultFlow(
+            webSocketClient = webSocketClient,
+            eventName = SocketEventConstants.CALL_CONTENTS_BLOCK,
+            resType = RoomNotifyContentsBlockResponse.serializer()
         )
 
     override suspend fun receiveRoomNotifyBeExpelledFromHost(): Flow<TogeResult<RoomNotifyBasicResponse>> =

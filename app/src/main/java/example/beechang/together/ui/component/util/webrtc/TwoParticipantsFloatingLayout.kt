@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import example.beechang.together.ui.call.room.RoomParticipantUi
+import example.beechang.together.ui.call.room.RoomUserInteractionUi
 import example.beechang.together.ui.call.room.VideoScaleType
 import example.beechang.together.webrtc.WebRtcData
 import org.webrtc.EglBase
@@ -25,6 +26,7 @@ fun TwoParticipantsFloatingLayout(
     participants: LinkedHashMap<String, RoomParticipantUi>,
     eglBase: EglBase?,
     webRtcData: Map<String, WebRtcData>,
+    userInteractions: Map<String, RoomUserInteractionUi> = emptyMap(),
     onSwapParticipants: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -53,6 +55,7 @@ fun TwoParticipantsFloatingLayout(
             participant = mainParticipant,
             webRtcData = webRtcData[mainViewUserId] ?: WebRtcData(),
             eglBase = eglBase,
+            userInteraction = userInteractions[mainViewUserId],
             scaleType = VideoScaleType.ASPECT_FIT,
             modifier = Modifier.fillMaxSize()
         )
@@ -70,6 +73,7 @@ fun TwoParticipantsFloatingLayout(
                     eglBase = eglBase,
                     floatingWidth = floatingWidth,
                     floatingHeight = floatingHeight,
+                    userInteraction = userInteractions[floatingViewUserId],
                     onDoubleTap = {
                         val newMain = floatingViewUserId
                         val newFloat = mainViewUserId

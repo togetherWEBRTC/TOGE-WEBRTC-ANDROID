@@ -404,6 +404,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
             }
         }
         vadMonitor.removePeer(userId)
+        remoteUserPeerConnection[userId]?.release()
         remoteUserPeerConnection.remove(userId)
         pendingIceCandidates.remove(userId)
     }

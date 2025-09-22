@@ -46,6 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import example.beechang.together.R
 import example.beechang.together.ui.call.room.RoomParticipantUi
+import example.beechang.together.ui.call.room.RoomUserInteractionUi
 import example.beechang.together.ui.component.util.CircularImage
 import example.beechang.together.ui.component.util.ClickShrinkEffect
 import example.beechang.together.ui.theme.LocalTogeAppColor
@@ -62,6 +63,7 @@ fun ParticipantBottomSheet(
     roomCode: String = "",
     waitingParticipants: List<RoomParticipantUi> = listOf(),
     participants: List<RoomParticipantUi> = listOf(),
+    userInteractions: Map<String, RoomUserInteractionUi> = emptyMap(),
     /* EVENT */
     onDismissRequest: () -> Unit = {},
     onApproveWaiting: (String/*userId*/) -> Unit = {},
@@ -152,14 +154,16 @@ fun ParticipantBottomSheet(
                     items = participants,
                     key = { _, participant -> participant.userId + "_participant" }
                 ) { index, participant ->
-                    RoomParticipantList(
+                    val userInteraction = userInteractions[participant.userId]
+                    ParticipantRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = if (index == 0) 0.dp else 8.dp),
                         participant = participant,
                         isHost = isHost,
                         myUserId = myUserId,
-                        onExpelMember = { onExpelParticipant(participant.userId) }
+                        isBlocked = userInteraction?.isShowBlockIndicator == true,
+                        onExpel = { onExpelParticipant(participant.userId) }
                     )
                 }
             }
@@ -228,35 +232,54 @@ fun RoomParticipantWaitingList(
 }
 
 @Composable
-fun RoomParticipantList(
+private fun ParticipantRow(
     modifier: Modifier = Modifier,
     participant: RoomParticipantUi,
     isHost: Boolean = false,
     myUserId: String = "",
-    onExpelMember: () -> Unit = {},
+    isBlocked: Boolean = false,
+    onExpel: () -> Unit = {},
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CircularImage(
-            imageUrl = participant.getProfileFullUrl(),
-            size = 32.dp,
-            borderWidth = 0.4.dp,
-        )
+        if (isBlocked) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_block_red),
+                contentDescription = "blocked user",
+                modifier = Modifier.size(32.dp)
+            )
+        } else {
+            CircularImage(
+                imageUrl = participant.getProfileFullUrl(),
+                size = 32.dp,
+                borderWidth = 0.4.dp,
+            )
+        }
 
+        // 이름 / 호스트 라벨
         Column(
             modifier = Modifier
                 .padding(start = 12.dp)
                 .weight(1f),
-
-            ) {
-            Text(
-                text = participant.name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        ) {
+            if (isBlocked) {
+                Text(
+                    text = stringResource(R.string.blocked_user),
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = LocalTogeAppColor.current.grey400
+                )
+            } else {
+                Text(
+                    text = participant.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             if (participant.isOwner) {
                 Text(
@@ -268,40 +291,46 @@ fun RoomParticipantList(
             }
         }
 
-        if (participant.userId != myUserId) {
-            var isMenuExpanded by remember { mutableStateOf(false) }
+        // 호스트 권한에 따른 메뉴 (내 유저가 아니고 isHost인 경우만)
+        if (participant.userId != myUserId && isHost) {
+            HostMenu(onExpel = onExpel)
+        }
+    }
+}
 
-            Box(modifier = Modifier.offset(x = 16.dp)) {
-                IconButton(onClick = { isMenuExpanded = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_more),
-                        modifier = Modifier.size(24.dp),
-                        contentDescription = "more"
+@Composable
+private fun HostMenu(
+    onExpel: () -> Unit,
+) {
+    var isMenuExpanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.offset(x = 16.dp)) {
+        IconButton(onClick = { isMenuExpanded = true }) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_more),
+                modifier = Modifier.size(24.dp),
+                contentDescription = "more"
+            )
+        }
+
+        DropdownMenu(
+            expanded = isMenuExpanded,
+            onDismissRequest = { isMenuExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.exclude_participant_title),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
+                },
+                onClick = {
+                    onExpel()
+                    isMenuExpanded = false
                 }
-
-                DropdownMenu(
-                    expanded = isMenuExpanded,
-                    onDismissRequest = { isMenuExpanded = false }
-                ) {
-                    if (isHost) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = stringResource(R.string.exclude_participant_title),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = TextAlign.Center
-                                )
-                            },
-                            onClick = {
-                                onExpelMember()
-                                isMenuExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
+            )
         }
     }
 }

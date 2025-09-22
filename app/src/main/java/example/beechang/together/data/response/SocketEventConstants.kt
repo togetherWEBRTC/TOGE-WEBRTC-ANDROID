@@ -38,6 +38,7 @@ object SocketEventConstants {
     const val CALL_NOTIFY_CHANGE_CAMERA = "call_notify_change_camera"
     const val CALL_CHANGE_HAND_RAISED = "call_change_hand_raised"
     const val CALL_NOTIFY_CHANGE_HAND_RAISED = "call_notify_change_hand_raised"
+    const val CALL_CONTENTS_BLOCK = "call_contents_block"
 
     // 채팅 관련
     const val CHAT_SEND_CHAT_MESSAGE = "chat_send_message"
@@ -81,7 +82,8 @@ object SocketEventConstants {
         CALL_CHANGE_CAMERA,
         CALL_NOTIFY_CHANGE_CAMERA,
         CALL_CHANGE_HAND_RAISED,
-        CALL_NOTIFY_CHANGE_HAND_RAISED
+        CALL_NOTIFY_CHANGE_HAND_RAISED,
+        CALL_CONTENTS_BLOCK
     )
 
     val CHAT_EVENTS = setOf(
@@ -126,6 +128,7 @@ object SocketEventConstants {
         RTC_READY,
         CALL_NOTIFY_CHANGE_MIC,
         CALL_NOTIFY_CHANGE_CAMERA,
+        CALL_CONTENTS_BLOCK,
         CALL_NOTIFY_CHANGE_HAND_RAISED,
         CHAT_NOTIFY_CHAT_MESSAGE,
         SOCKET_ERROR

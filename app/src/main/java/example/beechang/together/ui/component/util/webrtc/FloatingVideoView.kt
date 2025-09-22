@@ -16,6 +16,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import example.beechang.together.ui.call.room.RoomParticipantUi
+import example.beechang.together.ui.call.room.RoomUserInteractionUi
 import example.beechang.together.ui.call.room.VideoScaleType
 import example.beechang.together.ui.theme.LocalTogeAppColor
 import example.beechang.together.webrtc.WebRtcData
@@ -28,6 +29,7 @@ fun FloatingVideoView(
     eglBase: EglBase?,
     floatingWidth: Dp,
     floatingHeight: Dp,
+    userInteraction: RoomUserInteractionUi? = null,
     onDoubleTap: () -> Unit
 ) {
     val animatedBorderWidth by animateDpAsState(
@@ -53,6 +55,7 @@ fun FloatingVideoView(
             eglBase = eglBase,
             webRtcData = webRtcData ?: WebRtcData(),
             participant = participant,
+            userInteraction = userInteraction,
             scaleType = VideoScaleType.ASPECT_FILL
         )
     }

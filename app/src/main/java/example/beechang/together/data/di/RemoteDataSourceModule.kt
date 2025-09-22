@@ -6,6 +6,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import example.beechang.together.data.http.api.UserDataSource
 import example.beechang.together.data.http.api.UserDataSourceImpl
+import example.beechang.together.data.http.api.ReportDataSource
+import example.beechang.together.data.http.api.ReportDataSourceImpl
 import example.beechang.together.data.websocket.RoomDataSourceImpl
 import example.beechang.together.data.websocket.SignallingDataSourceImpl
 import example.beechang.together.data.websocket.RoomDataSource
@@ -33,4 +35,10 @@ internal abstract class RemoteDataSourceModule {
     abstract fun bindSignallingDataSource(
         signallingDataSourceImpl: SignallingDataSourceImpl
     ): SignallingDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindReportDataSource(
+        reportDataSourceImpl: ReportDataSourceImpl
+    ): ReportDataSource
 }
