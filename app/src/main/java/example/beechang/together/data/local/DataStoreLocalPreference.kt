@@ -105,6 +105,14 @@ class DataStoreLocalPreference @Inject constructor(
             }
         }
 
+    override var sessionId: String
+        get() = runBlocking { dataStore.data.first()[SESSION_ID] ?: "" }
+        set(value) = runBlocking {
+            dataStore.edit { preferences ->
+                preferences[SESSION_ID] = value
+            }
+        }
+
     override fun clear() {
         runBlocking {
             dataStore.edit { preferences ->
@@ -138,5 +146,6 @@ class DataStoreLocalPreference @Inject constructor(
         private val PROFILE_URL = stringPreferencesKey("profileUrl")
         private val LOGIN_STATE = stringPreferencesKey("loginState")
         private val ACCESS_TOKEN_IAT = longPreferencesKey("accessTokenIat")
+        private val SESSION_ID = stringPreferencesKey("sessionId")
     }
 }
