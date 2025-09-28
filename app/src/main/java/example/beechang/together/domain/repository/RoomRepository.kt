@@ -7,11 +7,23 @@ import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
 import example.beechang.together.domain.model.RoomParticipantInfo
 import example.beechang.together.domain.model.RoomWaitingMembers
+import example.beechang.together.domain.model.ConnectionCheckResult
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import kotlinx.coroutines.flow.Flow
 
 interface RoomRepository {
-    suspend fun connect(): TogeResult<Boolean>
+    suspend fun connect(accessToken: String, sessionId: String): TogeResult<Boolean>
+    suspend fun checkConnection(
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<ConnectionCheckResult>
+
+    suspend fun choiceDuplicateConnection(
+        forceDisconnectExisting: Boolean,
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<Boolean>
+
     suspend fun disconnect(): TogeResult<Boolean>
     suspend fun createRoom(roodCode: String? = null): TogeResult<RoomCode>
     suspend fun requestWaitingEnter(roomCode: String): TogeResult<Boolean>
