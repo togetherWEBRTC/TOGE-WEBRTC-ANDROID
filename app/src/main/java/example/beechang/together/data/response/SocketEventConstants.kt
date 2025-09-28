@@ -7,6 +7,8 @@ object SocketEventConstants {
     const val DISCONNECT = "disconnect"
     const val CONNECT_ERROR = "connect_error"
     const val AUTH_ERROR = "auth_error"
+    const val CHECK_CONNECTION = "check_connection"
+    const val DUPLICATE_CONNECTION_CHOICE = "duplicate_connection_choice"
 
     // 방 관련
     const val ROOM_CREATE = "room_create"
@@ -48,7 +50,7 @@ object SocketEventConstants {
     const val SOCKET_ERROR = "socket_error"
 
     val CONNECTION_EVENTS = setOf(
-        CONNECT, DISCONNECT, AUTH_ERROR , CONNECT_ERROR
+        CONNECT, DISCONNECT, AUTH_ERROR , CONNECT_ERROR, CHECK_CONNECTION, DUPLICATE_CONNECTION_CHOICE
     )
 
     val ROOM_EVENTS = setOf(
@@ -99,6 +101,8 @@ object SocketEventConstants {
         CONNECTION_EVENTS + ROOM_EVENTS + SIGNAL_EVENTS + CALL_EVENTS + CHAT_EVENTS + ERROR_EVENTS
 
     val EMIT_EVENTS = setOf(
+        CHECK_CONNECTION,
+        DUPLICATE_CONNECTION_CHOICE,
         ROOM_CREATE,
         ROOM_LEAVE,
         ROOM_REQUEST_JOIN,

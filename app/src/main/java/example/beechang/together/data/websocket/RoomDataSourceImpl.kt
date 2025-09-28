@@ -1,12 +1,15 @@
 package example.beechang.together.data.websocket
 
+import example.beechang.together.data.request.ChoiceDuplicateConnectionRequest
 import example.beechang.together.data.request.RoomBasicMemberRequest
 import example.beechang.together.data.request.RoomChangeCameraRequest
 import example.beechang.together.data.request.RoomChangeMicRequest
 import example.beechang.together.data.request.RoomCodeRequest
 import example.beechang.together.data.request.RoomDecisionWaitingEnterRequest
 import example.beechang.together.data.request.RoomMemberRequest
+import example.beechang.together.data.request.ConnectionCheckRequest
 import example.beechang.together.data.response.BaseResponse
+import example.beechang.together.data.response.ChoiceDuplicateConnectionResponse
 import example.beechang.together.data.response.RoomCreateResponse
 import example.beechang.together.data.response.RoomMemberResponse
 import example.beechang.together.data.response.RoomNotifyBasicResponse
@@ -16,6 +19,7 @@ import example.beechang.together.data.response.RoomNotifyContentsBlockResponse
 import example.beechang.together.data.response.RoomNotifyUpdateParticipantResponse
 import example.beechang.together.data.response.RoomNotifyWaitResponse
 import example.beechang.together.data.response.RoomNotifyWaitingResultResponse
+import example.beechang.together.data.response.ConnectionCheckResponse
 import example.beechang.together.data.response.SocketEventConstants
 import example.beechang.together.data.response.handler.socketEventToResultFlow
 import example.beechang.together.data.response.handler.togeToResult
@@ -30,11 +34,43 @@ class RoomDataSourceImpl @Inject constructor(
     private val webSocketClient: WebSocketClient,
 ) : RoomDataSource {
 
-    override suspend fun connect(accessToken: String): TogeResult<Boolean> =
-        if (webSocketClient.connect(accessToken)) {
+    override suspend fun connect(accessToken: String, sessionId: String): TogeResult<Boolean> =
+        if (webSocketClient.connect(accessToken, sessionId)) {
             TogeResult.Success(true)
         } else {
             TogeResult.Error(togeError = TogeError.FailedToConnectRoom)
+        }
+
+    override suspend fun checkConnection(
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<ConnectionCheckResponse> =
+        togeToResult {
+            webSocketClient.emitWithAck(
+                event = SocketEventConstants.CHECK_CONNECTION,
+                request = ConnectionCheckRequest(
+                    accessToken = accessToken,
+                    sessionId = sessionId
+                ),
+                responseType = ConnectionCheckResponse.serializer()
+            )
+        }
+
+    override suspend fun choiceDuplicateConnection(
+        forceDisconnectExisting: Boolean,
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<ChoiceDuplicateConnectionResponse> =
+        togeToResult {
+            webSocketClient.emitWithAck(
+                event = SocketEventConstants.DUPLICATE_CONNECTION_CHOICE,
+                request = ChoiceDuplicateConnectionRequest(
+                    forceDisconnect = forceDisconnectExisting,
+                    accessToken = accessToken,
+                    sessionId = sessionId
+                ),
+                responseType = ChoiceDuplicateConnectionResponse.serializer()
+            )
         }
 
     override suspend fun disconnect(): TogeResult<Boolean> =

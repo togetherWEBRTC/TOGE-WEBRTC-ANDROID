@@ -1,6 +1,7 @@
 package example.beechang.together.data.websocket
 
 import example.beechang.together.data.response.BaseResponse
+import example.beechang.together.data.response.ChoiceDuplicateConnectionResponse
 import example.beechang.together.data.response.RoomCreateResponse
 import example.beechang.together.data.response.RoomMemberResponse
 import example.beechang.together.data.response.RoomNotifyBasicResponse
@@ -10,11 +11,23 @@ import example.beechang.together.data.response.RoomNotifyContentsBlockResponse
 import example.beechang.together.data.response.RoomNotifyUpdateParticipantResponse
 import example.beechang.together.data.response.RoomNotifyWaitResponse
 import example.beechang.together.data.response.RoomNotifyWaitingResultResponse
+import example.beechang.together.data.response.ConnectionCheckResponse
 import example.beechang.together.domain.data.TogeResult
 import kotlinx.coroutines.flow.Flow
 
 interface RoomDataSource {
-    suspend fun connect(accessToken: String): TogeResult<Boolean>
+    suspend fun connect(accessToken: String, sessionId: String): TogeResult<Boolean>
+    suspend fun checkConnection(
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<ConnectionCheckResponse>
+
+    suspend fun choiceDuplicateConnection(
+        forceDisconnectExisting: Boolean,
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<ChoiceDuplicateConnectionResponse>
+
     suspend fun disconnect(): TogeResult<Boolean>
     suspend fun createRoom(roomCode: String): TogeResult<RoomCreateResponse>
     suspend fun requestWaitingEnter(roomCode: String): TogeResult<BaseResponse>
