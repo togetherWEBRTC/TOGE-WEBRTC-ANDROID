@@ -9,6 +9,7 @@ object SocketEventConstants {
     const val AUTH_ERROR = "auth_error"
     const val CHECK_CONNECTION = "check_connection"
     const val DUPLICATE_CONNECTION_CHOICE = "duplicate_connection_choice"
+    const val FORCE_LOGOUT_BY_DUPLICATE_CONNECTION = "force_logout_by_duplicate_connection"
 
     // 방 관련
     const val ROOM_CREATE = "room_create"
@@ -50,7 +51,7 @@ object SocketEventConstants {
     const val SOCKET_ERROR = "socket_error"
 
     val CONNECTION_EVENTS = setOf(
-        CONNECT, DISCONNECT, AUTH_ERROR , CONNECT_ERROR, CHECK_CONNECTION, DUPLICATE_CONNECTION_CHOICE
+        CONNECT, DISCONNECT, AUTH_ERROR , CONNECT_ERROR, CHECK_CONNECTION, DUPLICATE_CONNECTION_CHOICE, FORCE_LOGOUT_BY_DUPLICATE_CONNECTION
     )
 
     val ROOM_EVENTS = setOf(
@@ -120,6 +121,8 @@ object SocketEventConstants {
 
     val INCOMING_EVENTS = setOf(
         AUTH_ERROR,
+        CHECK_CONNECTION,
+        FORCE_LOGOUT_BY_DUPLICATE_CONNECTION,
         ROOM_NOTIFY_WAIT,
         ROOM_NOTIFY_DECIDE_JOIN_FROM_HOST,
         ROOM_NOTIFY_UPDATE_PARTICIPANT,

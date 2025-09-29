@@ -13,7 +13,9 @@ import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
 import example.beechang.together.domain.model.RoomParticipantInfo
 import example.beechang.together.domain.model.RoomWaitingMembers
-import example.beechang.together.domain.model.ConnectionCheckResult
+import example.beechang.together.domain.model.ConnectionState
+import example.beechang.together.domain.model.SocketConnectionStatus
+import example.beechang.together.domain.model.SocketUserState
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import example.beechang.together.domain.repository.RoomRepository
 import kotlinx.coroutines.flow.Flow
@@ -28,18 +30,6 @@ class RoomRepositoryImpl @Inject constructor(
 
     override suspend fun connect(accessToken: String, sessionId: String): TogeResult<Boolean> =
         roomDataSource.connect(accessToken, sessionId)
-
-    override suspend fun checkConnection(
-        accessToken: String,
-        sessionId: String,
-    ): TogeResult<ConnectionCheckResult> =
-        roomDataSource.checkConnection(accessToken, sessionId).map {
-            ConnectionCheckResult(
-                isDuplicateConnection = it.isDuplicateConnection ?: false,
-                existingSocketId = it.existingSocketId,
-                currentSocketId = it.currentSocketId
-            )
-        }
 
     override suspend fun choiceDuplicateConnection(
         forceDisconnectExisting: Boolean,
@@ -112,6 +102,35 @@ class RoomRepositoryImpl @Inject constructor(
             roomCode = roomCode,
             isCameraOn = isCameraOn
         ).map { it.toSuccessBoolean() }
+
+    override suspend fun receiveConnectionState(): Flow<TogeResult<ConnectionState>> {
+        return roomDataSource.receiveConnectionState().mapToge {
+            ConnectionState(
+                name = it.name,
+                connectionStatus = when (it.connectionStatus) {
+                    "NEW_CONNECTION" -> SocketConnectionStatus.NEW_CONNECTION
+                    "RECONNECTION_SUCCESS" -> SocketConnectionStatus.RECONNECTION_SUCCESS
+                    "DUPLICATE_CONNECTION" -> SocketConnectionStatus.DUPLICATE_CONNECTION
+                    else -> SocketConnectionStatus.NEW_CONNECTION
+                },
+                userState = when (it.userState) {
+                    "IDLE" -> SocketUserState.IDLE
+                    "IN_ROOM" -> SocketUserState.IN_ROOM
+                    "WAITING_FOR_ROOM" -> SocketUserState.WAITING_FOR_ROOM
+                    else -> SocketUserState.IDLE
+                },
+                message = it.message,
+                isDuplicateConnection = it.isDuplicateConnection ?: false,
+                existingSocketId = it.existingSocketId,
+                currentSocketId = it.currentSocketId
+            )
+        }
+    }
+
+    override suspend fun receiveForcedLogoutByDuplicateConnection(): Flow<TogeResult<Boolean>> {
+        return roomDataSource.receiveForcedLogoutByDuplicateConnection()
+            .mapToge { true }
+    }
 
     override suspend fun receiveRoomNotifyWait(): Flow<TogeResult<RoomWaitingMembers>> {
         return roomDataSource.receiveRoomNotifyWaitingList()
