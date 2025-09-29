@@ -11,6 +11,7 @@ import example.beechang.together.domain.usecase.user.GetLoginStateUseCase
 import example.beechang.together.domain.usecase.user.GetUserInfoUseCase
 import example.beechang.together.domain.usecase.user.UpdateAccessTokenUseCase
 import example.beechang.together.domain.model.InquiryCategory
+import example.beechang.together.domain.model.SocketConnectionStatus
 import example.beechang.together.ui.utils.BaseViewModel
 import example.beechang.together.ui.utils.UiEffect
 import example.beechang.together.ui.utils.UiEvent
@@ -31,7 +32,7 @@ class HomeViewModel @Inject constructor(
 ) : BaseViewModel<HomeState, HomeEvent, HomeEffect>(
     savedStateHandle, HomeState(), HOME_STATE
 ) {
-    public override fun onEvent(event: HomeEvent) {
+    override fun onEvent(event: HomeEvent) {
         when (event) {
             HomeEvent.CrateRoom -> {
                 updateAccessToken(true)
@@ -106,16 +107,20 @@ class HomeViewModel @Inject constructor(
             onStart = { updateState { copy(isLoading = true) } },
             action = { connectRoomUseCase.invoke() },
             onSuccess = { connectionResult ->
-                if (connectionResult.isDuplicateConnection) {  // 중복 연결 감지
-                    updateState {
-                        copy(
-                            showDuplicateConnectionDialog = true,
-                            pendingRoomCreation = isCreatingRoom,
-                            pendingRoomCode = if (isCreatingRoom) "" else enterRoomCode
-                        )
+                when (connectionResult.connectionStatus) {
+                    SocketConnectionStatus.DUPLICATE_CONNECTION -> { // 중복 연결 감지
+                        updateState {
+                            copy(
+                                showDuplicateConnectionDialog = true,
+                                pendingRoomCreation = isCreatingRoom,
+                                pendingRoomCode = if (isCreatingRoom) "" else enterRoomCode
+                            )
+                        }
                     }
-                } else {
-                    moveToRoom(isCreatingRoom)
+
+                    SocketConnectionStatus.NEW_CONNECTION, SocketConnectionStatus.RECONNECTION_SUCCESS -> {
+                        moveToRoom(isCreatingRoom)
+                    }
                 }
             },
             onFinally = { updateState { copy(isLoading = false) } }
@@ -128,8 +133,7 @@ class HomeViewModel @Inject constructor(
             onSuccess = { connectionAllowed ->
                 updateState { copy(showDuplicateConnectionDialog = false) }
 
-                if (connectionAllowed) {
-                    // 연결이 허용됨 - 방으로 이동
+                if (connectionAllowed) {  // 연결이 허용됨 - 방으로 이동
                     val isCreatingRoom = uiState.value.pendingRoomCreation
                     moveToRoom(isCreatingRoom)
                 } else {
