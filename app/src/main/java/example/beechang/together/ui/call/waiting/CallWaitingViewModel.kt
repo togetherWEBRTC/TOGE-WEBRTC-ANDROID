@@ -29,8 +29,6 @@ class CallWaitingViewModel @Inject constructor(
         val roomCode = savedStateHandle.get<String>("roomCode") ?: ""
         if (roomCode.isNotEmpty()) {
             requestEnterRoom(roomCode)
-        } else {
-            updateState { copy(isShowDialogForWrongRoomCode = true) }
         }
 
         listenWaitingResult()
@@ -47,13 +45,6 @@ class CallWaitingViewModel @Inject constructor(
                 requestEnterRoom(event.roomCode)
             }
 
-            CallWaitingEvent.SwitchWrongRoomCodeDialog -> {
-                updateState { copy(isShowDialogForWrongRoomCode = !currentState.isShowDialogForWrongRoomCode) }
-            }
-
-            CallWaitingEvent.SwitchLeaveRoomDialog -> {
-                updateState { copy(isShowDialogForLeaveRoom = !currentState.isShowDialogForLeaveRoom) }
-            }
         }
     }
 
@@ -94,15 +85,11 @@ class CallWaitingViewModel @Inject constructor(
 data class CallWaitingState(
     val isLoading: Boolean = false,
     val roomCode: String = "",
-    val isShowDialogForWrongRoomCode: Boolean = false,
-    val isShowDialogForLeaveRoom: Boolean = false,
 ) : Parcelable, UiState
 
 sealed interface CallWaitingEvent : UiEvent {
     object Disconnect : CallWaitingEvent
     data class RequestEnterRoom(val roomCode: String) : CallWaitingEvent // 통화방입장요청
-    object SwitchWrongRoomCodeDialog : CallWaitingEvent //룸정보잘못됨 다이얼로그
-    object SwitchLeaveRoomDialog : CallWaitingEvent // 방 나가기 다이얼로그
 }
 
 sealed interface CallWaitingEffect : UiEffect {

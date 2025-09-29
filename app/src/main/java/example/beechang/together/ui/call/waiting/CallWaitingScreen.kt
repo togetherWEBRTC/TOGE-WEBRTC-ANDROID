@@ -1,5 +1,6 @@
 package example.beechang.together.ui.call.waiting
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,10 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,11 +59,23 @@ fun CallWaitingRouter(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
+    /* Dialog States */
+    var isShowDialogForWrongRoomCode by remember { mutableStateOf(false) }
+    var isShowDialogForLeaveRoom by remember { mutableStateOf(false) }
+    var isShowDialogForRejected by remember { mutableStateOf(false) }
+
     LaunchedEffect(viewModel) {
         viewModel.errorEffect.collect { error ->
             if (error is TogeError.RoomNotFound) {
-                viewModel.onEvent(CallWaitingEvent.SwitchWrongRoomCodeDialog)
+                isShowDialogForWrongRoomCode = true
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val roomCode = navBackStackEntry.arguments?.getString("roomCode") ?: ""
+        if (roomCode.isEmpty()) {
+            isShowDialogForWrongRoomCode = true
         }
     }
 
@@ -67,11 +83,14 @@ fun CallWaitingRouter(
         viewModel.sideEffect.collect { effect ->
             when (effect) {
                 is CallWaitingEffect.SuccessWaitingEnterRoom -> {
-                    CallNavDestination.navigateToCallFromWaiting(navController , viewModel.uiState.value.roomCode )
+                    CallNavDestination.navigateToCallFromWaiting(
+                        navController,
+                        viewModel.uiState.value.roomCode
+                    )
                 }
 
                 is CallWaitingEffect.RejectedWaitingEnterRoom -> {
-                    viewModel.onEvent(CallWaitingEvent.SwitchLeaveRoomDialog)
+                    isShowDialogForRejected = true
                 }
 
                 CallWaitingEffect.SuccessRequestEnterRoom -> {}
@@ -80,6 +99,7 @@ fun CallWaitingRouter(
     }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    BackHandler { isShowDialogForLeaveRoom = true }
 
     CallWaitingScreen(
         modifier = modifier,
@@ -87,12 +107,14 @@ fun CallWaitingRouter(
         /* STATE */
         isLoading = state.isLoading,
         roomCode = state.roomCode,
-        isShowDialogForWrongRoomCode = state.isShowDialogForWrongRoomCode,
-        isShowDialogForLeaveRoom = state.isShowDialogForLeaveRoom,
+        isShowDialogForWrongRoomCode = isShowDialogForWrongRoomCode,
+        isShowDialogForLeaveRoom = isShowDialogForLeaveRoom,
+        isShowDialogForRejected = isShowDialogForRejected,
         /* EVENT */
         onEventDisconnect = { viewModel.onEvent(CallWaitingEvent.Disconnect) },
-        onEventSwitchLeaveRoomDialog = { viewModel.onEvent(CallWaitingEvent.SwitchLeaveRoomDialog) },
-        onEventSwitchWrongRoomCodeDialog = { viewModel.onEvent(CallWaitingEvent.SwitchWrongRoomCodeDialog) },
+        onEventSwitchLeaveRoomDialog = { isShowDialogForLeaveRoom = !isShowDialogForLeaveRoom },
+        onEventSwitchWrongRoomCodeDialog = { isShowDialogForWrongRoomCode = !isShowDialogForWrongRoomCode },
+        onEventSwitchRejectedDialog = { isShowDialogForRejected = !isShowDialogForRejected },
         onBackClick = { navController.popBackStack() }
     )
 }
@@ -106,11 +128,13 @@ fun CallWaitingScreen(
     roomCode: String = "",
     isShowDialogForWrongRoomCode: Boolean = false,
     isShowDialogForLeaveRoom: Boolean = false,
+    isShowDialogForRejected: Boolean = false,
     /* EVENT */
     onEventDisconnect: () -> Unit = {},
     onEventSwitchLeaveRoomDialog: () -> Unit = {},
     onEventSwitchWrongRoomCodeDialog: () -> Unit = {},
-    onBackClick: () -> Unit = {}
+    onEventSwitchRejectedDialog: () -> Unit = {},
+    onBackClick: () -> Unit = {},
 ) {
 
     val lottie by rememberLottieComposition(
@@ -118,6 +142,12 @@ fun CallWaitingScreen(
     )
 
     val scrollState = rememberScrollState()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onEventDisconnect()
+        }
+    }
 
     TogeDialog(
         isShowDialog = isShowDialogForLeaveRoom,
@@ -129,6 +159,28 @@ fun CallWaitingScreen(
         onConfirm = {
             onEventDisconnect()
             onEventSwitchLeaveRoomDialog()
+            onBackClick()
+        }
+    )
+
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowDialogForWrongRoomCode,
+        title = stringResource(R.string.error),
+        content = stringResource(R.string.invalid_code),
+        onConfirm = {
+            onEventDisconnect()
+            onEventSwitchWrongRoomCodeDialog()
+            onBackClick()
+        }
+    )
+
+    TogeOnlyConfirmBtnDialog(
+        isShowDialog = isShowDialogForRejected,
+        title = stringResource(R.string.reject),
+        content = stringResource(R.string.host_rejected_entry),
+        onConfirm = {
+            onEventDisconnect()
+            onEventSwitchRejectedDialog()
             onBackClick()
         }
     )
@@ -167,28 +219,6 @@ fun CallWaitingScreen(
             )
         }
     }
-
-    TogeOnlyConfirmBtnDialog(
-        isShowDialog = isShowDialogForWrongRoomCode,
-        title = stringResource(R.string.error),
-        content = stringResource(R.string.invalid_code),
-        onConfirm = {
-            onEventDisconnect()
-            onEventSwitchWrongRoomCodeDialog()
-            onBackClick()
-        }
-    )
-
-    TogeOnlyConfirmBtnDialog(
-        isShowDialog = isShowDialogForLeaveRoom,
-        title = stringResource(R.string.reject),
-        content = stringResource(R.string.host_rejected_entry),
-        onConfirm = {
-            onEventDisconnect()
-            onEventSwitchLeaveRoomDialog()
-            onBackClick()
-        }
-    )
 }
 
 @Preview
@@ -200,6 +230,7 @@ fun PreviewCallWaitingScreen() {
         onEventDisconnect = {},
         onEventSwitchLeaveRoomDialog = {},
         onEventSwitchWrongRoomCodeDialog = {},
+        onEventSwitchRejectedDialog = {},
         onBackClick = {}
     )
 }
