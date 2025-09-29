@@ -20,7 +20,7 @@ class CallWaitingViewModel @Inject constructor(
     private val disconnectRoomUseCase: DisconnectRoomUseCase,
     private val waitingEnterRoomUseCase: WaitingEnterRoomUseCase,
     private val receiveWaitingResultUseCase: ReceiveWaitingResultUseCase,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallWaitingState, CallWaitingEvent, CallWaitingEffect>(
     savedStateHandle, CallWaitingState(), CALL_WAITING_STATE
 ) {
@@ -66,9 +66,9 @@ class CallWaitingViewModel @Inject constructor(
         receiveWaitingResultUseCase.invoke()
             .collectInViewModel(
                 onSuccess = { result ->
-                    if(result){
+                    if (result) {
                         sendEffect(CallWaitingEffect.SuccessWaitingEnterRoom)
-                    }else{
+                    } else {
                         sendEffect(CallWaitingEffect.RejectedWaitingEnterRoom)
                     }
                 }
@@ -89,11 +89,11 @@ data class CallWaitingState(
 
 sealed interface CallWaitingEvent : UiEvent {
     object Disconnect : CallWaitingEvent
-    data class RequestEnterRoom(val roomCode: String) : CallWaitingEvent // 통화방입장요청
+    data class RequestEnterRoom(val roomCode: String) : CallWaitingEvent
 }
 
 sealed interface CallWaitingEffect : UiEffect {
-    object SuccessRequestEnterRoom : CallWaitingEffect // 방 웨이팅걸기 성공결과
-    object RejectedWaitingEnterRoom : CallWaitingEffect // 방 웨이팅걸기 거절결과
-    object SuccessWaitingEnterRoom : CallWaitingEffect // 방 웨이팅걸기 성공결과
+    object SuccessRequestEnterRoom : CallWaitingEffect
+    object RejectedWaitingEnterRoom : CallWaitingEffect
+    object SuccessWaitingEnterRoom : CallWaitingEffect
 }
