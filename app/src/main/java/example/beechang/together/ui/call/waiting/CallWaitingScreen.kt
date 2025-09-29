@@ -143,12 +143,6 @@ fun CallWaitingScreen(
 
     val scrollState = rememberScrollState()
 
-    DisposableEffect(Unit) {
-        onDispose {
-            onEventDisconnect()
-        }
-    }
-
     TogeDialog(
         isShowDialog = isShowDialogForLeaveRoom,
         title = stringResource(R.string.notify),
