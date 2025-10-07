@@ -32,5 +32,6 @@ sealed interface TogeError {
     object AlreadyExistedRoom : TogeError
     object RequestedSameState : TogeError
     object FailedToConnectRoom : TogeError
+    object UserNotConnected : TogeError
 }
 

@@ -5,11 +5,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import example.beechang.together.domain.data.TogeError
+import example.beechang.together.domain.model.SocketConnectionStatus
+import example.beechang.together.domain.model.SocketUserState
 import example.beechang.together.domain.usecase.room.ChangeCameraSuatusUseCase
 import example.beechang.together.domain.usecase.room.ChangeMicStatusUseCase
 import example.beechang.together.domain.usecase.room.GetRoomParticipantUseCase
 import example.beechang.together.domain.usecase.room.ReceiveChangingCameraUseCase
 import example.beechang.together.domain.usecase.room.ReceiveChangingMicUseCase
+import example.beechang.together.domain.usecase.room.ReceiveConnectionStateUseCase
 import example.beechang.together.domain.usecase.room.ReceiveContentsBlockUseCase
 import example.beechang.together.domain.usecase.room.ReceiveUpdatingRoomParticipantUseCase
 import example.beechang.together.domain.usecase.signalling.ReceiveAnswerUseCase
@@ -59,6 +62,7 @@ class CallSignallingViewModel @Inject constructor(
     private val receiveChangingMicUseCase: ReceiveChangingMicUseCase,
     private val receiveChangingCameraUseCase: ReceiveChangingCameraUseCase,
     private val receiveContentsBlockUseCase: ReceiveContentsBlockUseCase,
+    private val receiveConnectionStateUseCase: ReceiveConnectionStateUseCase,
     savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<CallSignallingState, CallSignallingEvent, CallSignallingEffect>(
     savedStateHandle, CallSignallingState(), CALL_SIGNALLING_STATE
@@ -124,6 +128,10 @@ class CallSignallingViewModel @Inject constructor(
             is CallSignallingEvent.ToggleSpeakerMute -> {
                 toggleSpeakerMute(event.isMuted)
             }
+
+            CallSignallingEvent.IceRestart -> {
+                iceRestart()
+            }
         }
     }
 
@@ -137,6 +145,7 @@ class CallSignallingViewModel @Inject constructor(
         liseningChangingMic()
         listeningChangingCamera()
         listeningContentsBlock()
+        listeningConnectionState()
     }
 
     private fun prepareUserInfo() = viewModelScope.launch {
@@ -234,6 +243,10 @@ class CallSignallingViewModel @Inject constructor(
         )
 
         updateState { copy(isSpeakerMuted = isMuted) }
+    }
+
+    private fun iceRestart() = viewModelScope.launch {
+        webRtcManager.processActionAsync(WebRtcAction.General.RestartIce)
     }
 
     private fun listenParticipantsForWebrtcData() = viewModelScope.launch {
@@ -496,6 +509,18 @@ class CallSignallingViewModel @Inject constructor(
             )
     }
 
+    private fun listeningConnectionState() = viewModelScope.launch {
+        receiveConnectionStateUseCase.invoke()
+            .collectInViewModel(
+                onSuccess = { connectionState ->
+                    if (connectionState.connectionStatus == SocketConnectionStatus.RECONNECTION_SUCCESS &&
+                        connectionState.userState == SocketUserState.IN_ROOM
+                    ) {
+                        webRtcManager.processActionAsync(WebRtcAction.General.RestartIce)
+                    }
+                }
+            )
+    }
 
     private fun LinkedHashMap<String, RoomParticipantUi>.updateParticipant(
         userId: String,
@@ -543,6 +568,7 @@ sealed interface CallSignallingEvent : UiEvent {
     object RefreshVideo : CallSignallingEvent
     object RefreshAudio : CallSignallingEvent
     data class ToggleSpeakerMute(val isMuted: Boolean) : CallSignallingEvent
+    object IceRestart : CallSignallingEvent
 }
 
 sealed interface CallSignallingEffect : UiEffect {
