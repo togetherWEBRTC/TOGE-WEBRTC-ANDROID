@@ -13,13 +13,28 @@ import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
 import example.beechang.together.R
+import example.beechang.together.domain.usecase.room.DisconnectRoomUseCase
+import example.beechang.together.webrtc.TogeWebRtcManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeoutOrNull
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class WebRtcService : Service() {
     private val binder = LocalBinder()
+
+    @Inject
+    lateinit var webRtcManager: TogeWebRtcManager
+
+    @Inject
+    lateinit var disconnectRoomUseCase: DisconnectRoomUseCase
 
     inner class LocalBinder : Binder() {
         fun getService(): WebRtcService = this@WebRtcService
@@ -34,6 +49,23 @@ class WebRtcService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_NOT_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        runBlocking {
+            withTimeoutOrNull(3000) {
+                supervisorScope {
+                    launch(Dispatchers.IO) {
+                        disconnectRoomUseCase.invoke()
+                    }
+                    launch(Dispatchers.IO) {
+                        webRtcManager.release()
+                    }
+                }
+            }
+        }
+
+        super.onTaskRemoved(rootIntent)
     }
 
     fun startCall(
