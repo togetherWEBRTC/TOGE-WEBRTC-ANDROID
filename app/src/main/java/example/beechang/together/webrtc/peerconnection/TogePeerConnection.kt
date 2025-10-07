@@ -178,6 +178,10 @@ class TogePeerConnection(
     fun setIceCandidate(sdp: String, sdpMid: String, sdpMLineIndex: Int) =
         peerConnection.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, sdp))
 
+    fun restartIce() {
+        peerConnection.restartIce()
+    }
+
     fun getPeerConnection(): PeerConnection = peerConnection
 
     fun release() {
