@@ -107,18 +107,8 @@ class RoomRepositoryImpl @Inject constructor(
         return roomDataSource.receiveConnectionState().mapToge {
             ConnectionState(
                 name = it.name,
-                connectionStatus = when (it.connectionStatus) {
-                    "NEW_CONNECTION" -> SocketConnectionStatus.NEW_CONNECTION
-                    "RECONNECTION_SUCCESS" -> SocketConnectionStatus.RECONNECTION_SUCCESS
-                    "DUPLICATE_CONNECTION" -> SocketConnectionStatus.DUPLICATE_CONNECTION
-                    else -> SocketConnectionStatus.NEW_CONNECTION
-                },
-                userState = when (it.userState) {
-                    "IDLE" -> SocketUserState.IDLE
-                    "IN_ROOM" -> SocketUserState.IN_ROOM
-                    "WAITING_FOR_ROOM" -> SocketUserState.WAITING_FOR_ROOM
-                    else -> SocketUserState.IDLE
-                },
+                connectionStatus = SocketConnectionStatus.fromString(it.connectionStatus),
+                userState = SocketUserState.fromString(it.userState),
                 message = it.message,
                 isDuplicateConnection = it.isDuplicateConnection ?: false,
                 existingSocketId = it.existingSocketId,

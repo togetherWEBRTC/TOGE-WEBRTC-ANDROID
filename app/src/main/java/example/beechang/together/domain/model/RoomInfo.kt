@@ -68,13 +68,25 @@ enum class RoomConnectionState {
 enum class SocketConnectionStatus {
     NEW_CONNECTION,
     RECONNECTION_SUCCESS,
-    DUPLICATE_CONNECTION
+    DUPLICATE_CONNECTION;
+
+    companion object {
+        fun fromString(status: String?): SocketConnectionStatus {
+            return entries.find { it.name == status } ?: NEW_CONNECTION
+        }
+    }
 }
 
 enum class SocketUserState {
     IDLE,
     IN_ROOM,
-    WAITING_FOR_ROOM
+    WAITING_FOR_ROOM;
+
+    companion object {
+        fun fromString(state: String?): SocketUserState {
+            return entries.find { it.name == state } ?: IDLE
+        }
+    }
 }
 
 data class ConnectionState(
