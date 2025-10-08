@@ -69,13 +69,13 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         encodeDefaults = true
     }
 
-    override suspend fun connect(token: String): Boolean {
+    override suspend fun connect(token: String, sessionId: String): Boolean {
         try {
             if (isConnected) {
                 disconnect()
             }
 
-            initializeSocket(token)
+            initializeSocket(token, sessionId)
             val socket = socket ?: return false
 
             val isSuccessSocketConnection = async { isSuccessSocketConnection() }
@@ -186,10 +186,13 @@ class SocketIOWebSocketClient @Inject constructor() : WebSocketClient, Coroutine
         return json.decodeFromString(responseType, jsonObj.toString())
     }
 
-    private fun initializeSocket(token: String) {
+    private fun initializeSocket(token: String, sessionId: String) {
         try {
             val options = IO.Options().apply {
-                auth = mapOf("accessToken" to token)
+                auth = mapOf(
+                    "accessToken" to token,
+                    "sessionId" to sessionId
+                )
                 reconnection = true
                 randomizationFactor = RANDOMIZATION_FACTOR
                 reconnectionDelay = RECONNECTION_DELAY

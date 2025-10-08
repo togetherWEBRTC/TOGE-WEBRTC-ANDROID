@@ -54,3 +54,10 @@ data class RoomChangeCameraRequest(
     @SerialName("roomCode") val roomCode: String = "",
     @SerialName("isCameraOn") val isCameraOn: Boolean = false,
 )
+
+@Serializable
+data class ChoiceDuplicateConnectionRequest(
+    @SerialName("forceDisconnectExisting") val forceDisconnect: Boolean,
+    @SerialName("accessToken") val accessToken: String,
+    @SerialName("sessionId") val sessionId: String,
+)

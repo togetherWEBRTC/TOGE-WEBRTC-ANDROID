@@ -1,5 +1,6 @@
 package example.beechang.together.data.websocket
 
+import example.beechang.together.data.request.ChoiceDuplicateConnectionRequest
 import example.beechang.together.data.request.RoomBasicMemberRequest
 import example.beechang.together.data.request.RoomChangeCameraRequest
 import example.beechang.together.data.request.RoomChangeMicRequest
@@ -7,6 +8,8 @@ import example.beechang.together.data.request.RoomCodeRequest
 import example.beechang.together.data.request.RoomDecisionWaitingEnterRequest
 import example.beechang.together.data.request.RoomMemberRequest
 import example.beechang.together.data.response.BaseResponse
+import example.beechang.together.data.response.ChoiceDuplicateConnectionResponse
+import example.beechang.together.data.response.ConnectionCheckResponse
 import example.beechang.together.data.response.RoomCreateResponse
 import example.beechang.together.data.response.RoomMemberResponse
 import example.beechang.together.data.response.RoomNotifyBasicResponse
@@ -30,11 +33,28 @@ class RoomDataSourceImpl @Inject constructor(
     private val webSocketClient: WebSocketClient,
 ) : RoomDataSource {
 
-    override suspend fun connect(accessToken: String): TogeResult<Boolean> =
-        if (webSocketClient.connect(accessToken)) {
+    override suspend fun connect(accessToken: String, sessionId: String): TogeResult<Boolean> =
+        if (webSocketClient.connect(accessToken, sessionId)) {
             TogeResult.Success(true)
         } else {
             TogeResult.Error(togeError = TogeError.FailedToConnectRoom)
+        }
+
+    override suspend fun choiceDuplicateConnection(
+        forceDisconnectExisting: Boolean,
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<ChoiceDuplicateConnectionResponse> =
+        togeToResult {
+            webSocketClient.emitWithAck(
+                event = SocketEventConstants.DUPLICATE_CONNECTION_CHOICE,
+                request = ChoiceDuplicateConnectionRequest(
+                    forceDisconnect = forceDisconnectExisting,
+                    accessToken = accessToken,
+                    sessionId = sessionId
+                ),
+                responseType = ChoiceDuplicateConnectionResponse.serializer()
+            )
         }
 
     override suspend fun disconnect(): TogeResult<Boolean> =
@@ -133,6 +153,20 @@ class RoomDataSourceImpl @Inject constructor(
             responseType = BaseResponse.serializer()
         )
     }
+
+    override suspend fun receiveConnectionState(): Flow<TogeResult<ConnectionCheckResponse>> =
+        socketEventToResultFlow(
+            webSocketClient = webSocketClient,
+            eventName = SocketEventConstants.CHECK_CONNECTION,
+            resType = ConnectionCheckResponse.serializer()
+        )
+
+    override suspend fun receiveForcedLogoutByDuplicateConnection(): Flow<TogeResult<BaseResponse>> =
+        socketEventToResultFlow(
+            webSocketClient = webSocketClient,
+            eventName = SocketEventConstants.FORCE_LOGOUT_BY_DUPLICATE_CONNECTION,
+            resType = BaseResponse.serializer()
+        )
 
     override suspend fun receiveRoomNotifyWaitingList(): Flow<TogeResult<RoomNotifyWaitResponse>> =
         socketEventToResultFlow(

@@ -130,6 +130,10 @@ class TogeWebRtcManagerImpl @Inject constructor(
             is WebRtcAction.General.SetSpeakerMute -> {
                 setSpeakerMute(action.userId, action.isMuted)
             }
+
+            WebRtcAction.General.RestartIce -> {
+                performIceRestart()
+            }
         }
     }
 
@@ -197,7 +201,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
     private fun createPeerConnection(
         localUserId: String,
         remoteUserId: String,
-        role: PeerConnectionRole
+        role: PeerConnectionRole,
     ) {
         TogePeerConnection(
             pcf = pcf.pcf,
@@ -366,7 +370,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
         userId: String,
         sdp: String,
         sdpMid: String,
-        sdpMLineIndex: Int
+        sdpMLineIndex: Int,
     ) {
         val peerConnection = remoteUserPeerConnection[userId] ?: return
         if (peerConnection.hasRemoteDescription()) {
@@ -381,7 +385,7 @@ class TogeWebRtcManagerImpl @Inject constructor(
     private fun updateParticipant(
         userId: String,
         createIfMissing: Boolean = true,
-        update: (WebRtcData) -> WebRtcData
+        update: (WebRtcData) -> WebRtcData,
     ) {
         _participantMapFlow.update { currentMap ->
             val participant = currentMap[userId]
@@ -430,6 +434,12 @@ class TogeWebRtcManagerImpl @Inject constructor(
                 sdpMid = candidate.sdpMid,
                 sdpMLineIndex = candidate.sdpMLineIndex
             )
+        }
+    }
+
+    private fun performIceRestart() {
+        remoteUserPeerConnection.values.forEach { peerConnection ->
+            peerConnection.restartIce()
         }
     }
 

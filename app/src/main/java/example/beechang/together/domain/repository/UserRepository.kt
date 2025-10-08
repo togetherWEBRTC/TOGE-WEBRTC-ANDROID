@@ -40,4 +40,7 @@ interface UserRepository {
     suspend fun socialWithdraw(): TogeResult<Boolean>
     suspend fun getLoginStateFlow(): Flow<TogeResult<LoginState>>
     suspend fun updateAccessToken(): TogeResult<Boolean>
+    suspend fun saveSessionId(sessionId: String)
+    suspend fun getSessionId(): String?
+    suspend fun getAccessToken(): String?
 }

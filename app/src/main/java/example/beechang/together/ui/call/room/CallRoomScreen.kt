@@ -242,8 +242,8 @@ fun CallRoomRouter(
         roomViewModel.errorEffect.collect { error ->
             if (error is TogeError.FailedToCreateRoom || error is TogeError.FailedToConnectRoom) {
                 isShowDialogConnectionDisconnected = true
-            } else if (error is TogeError.RoomNotFound) {
-
+            } else if (error is TogeError.UserNotConnected) {
+                snackbarHostState.showSnackbar(context.getString(R.string.occur_error_please_retry))
             }
         }
     }

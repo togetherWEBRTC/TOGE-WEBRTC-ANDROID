@@ -3,7 +3,6 @@ package example.beechang.together.data.repository
 import example.beechang.together.data.response.handler.mapSuccessOrProvideError
 import example.beechang.together.data.websocket.RoomDataSource
 import example.beechang.together.data.websocket.WebSocketConnectionState
-import example.beechang.together.domain.data.LocalPreference
 import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.data.TogeResult
 import example.beechang.together.domain.data.map
@@ -14,6 +13,9 @@ import example.beechang.together.domain.model.RoomConnectionState
 import example.beechang.together.domain.model.RoomParticipant
 import example.beechang.together.domain.model.RoomParticipantInfo
 import example.beechang.together.domain.model.RoomWaitingMembers
+import example.beechang.together.domain.model.ConnectionState
+import example.beechang.together.domain.model.SocketConnectionStatus
+import example.beechang.together.domain.model.SocketUserState
 import example.beechang.together.domain.model.UpdatedRoomParticipant
 import example.beechang.together.domain.repository.RoomRepository
 import kotlinx.coroutines.flow.Flow
@@ -24,12 +26,20 @@ import javax.inject.Singleton
 @Singleton
 class RoomRepositoryImpl @Inject constructor(
     private val roomDataSource: RoomDataSource,
-    private val localPreference: LocalPreference,
 ) : RoomRepository {
 
-    override suspend fun connect(): TogeResult<Boolean> =
-        roomDataSource.connect(localPreference.accessToken)
+    override suspend fun connect(accessToken: String, sessionId: String): TogeResult<Boolean> =
+        roomDataSource.connect(accessToken, sessionId)
 
+    override suspend fun choiceDuplicateConnection(
+        forceDisconnectExisting: Boolean,
+        accessToken: String,
+        sessionId: String,
+    ): TogeResult<Boolean> =
+        roomDataSource.choiceDuplicateConnection(forceDisconnectExisting, accessToken, sessionId)
+            .map {
+                it.isAllowed ?: false
+            }
 
     override suspend fun disconnect(): TogeResult<Boolean> =
         roomDataSource.disconnect()
@@ -92,6 +102,25 @@ class RoomRepositoryImpl @Inject constructor(
             roomCode = roomCode,
             isCameraOn = isCameraOn
         ).map { it.toSuccessBoolean() }
+
+    override suspend fun receiveConnectionState(): Flow<TogeResult<ConnectionState>> {
+        return roomDataSource.receiveConnectionState().mapToge {
+            ConnectionState(
+                name = it.name,
+                connectionStatus = SocketConnectionStatus.fromString(it.connectionStatus),
+                userState = SocketUserState.fromString(it.userState),
+                message = it.message,
+                isDuplicateConnection = it.isDuplicateConnection ?: false,
+                existingSocketId = it.existingSocketId,
+                currentSocketId = it.currentSocketId
+            )
+        }
+    }
+
+    override suspend fun receiveForcedLogoutByDuplicateConnection(): Flow<TogeResult<Boolean>> {
+        return roomDataSource.receiveForcedLogoutByDuplicateConnection()
+            .mapToge { true }
+    }
 
     override suspend fun receiveRoomNotifyWait(): Flow<TogeResult<RoomWaitingMembers>> {
         return roomDataSource.receiveRoomNotifyWaitingList()

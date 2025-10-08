@@ -69,5 +69,6 @@ sealed interface WebRtcAction {
         data class RefreshVideo(val userId: String) : General
         data class RefreshAudio(val userId: String) : General
         data class SetSpeakerMute(val userId: String, val isMuted: Boolean) : General
+        object RestartIce : General
     }
 }

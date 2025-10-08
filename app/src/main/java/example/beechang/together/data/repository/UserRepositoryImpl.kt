@@ -213,6 +213,18 @@ class UserRepositoryImpl @Inject constructor(
             }
         }.map { it.toSuccessBoolean() }
 
+    override suspend fun saveSessionId(sessionId: String) {
+        localPreference.sessionId = sessionId
+    }
+
+    override suspend fun getSessionId(): String? {
+        return localPreference.sessionId.takeIf { it.isNotEmpty() }
+    }
+
+    override suspend fun getAccessToken(): String? {
+        return localPreference.accessToken.takeIf { it.isNotEmpty() }
+    }
+
     private fun parseJwtPayload(jwt: String): JSONObject? {
         return try {
             val parts = jwt.split(".")

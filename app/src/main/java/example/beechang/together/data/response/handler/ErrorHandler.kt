@@ -40,6 +40,7 @@ fun serverErrorCodeToTogeError(code: Int, msg: String? = null): TogeError {
         10004 -> TogeError.NotRoomMember
         10005 -> TogeError.RequestedSameState
         10006 -> TogeError.AlreadyExistedRoom
+        10007 -> TogeError.UserNotConnected
 
         else -> TogeError.UnknownError(msg)
     }
