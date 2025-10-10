@@ -41,7 +41,7 @@ data class UpdatedRoomParticipant(
     val participants: List<RoomParticipant> = emptyList(),
     val updatedUser: UserInfo,
     val isJoined: Boolean = false,
-    val joinedUserInteractionForMe : RoomUserInteraction? = null,
+    val joinedUserInteractionForMe: RoomUserInteraction? = null,
 )
 
 
@@ -53,7 +53,7 @@ data class RoomUserInteraction(
 
 data class RoomParticipantInfo(
     val participants: List<RoomParticipant>,
-    val userInteractions: List<RoomUserInteraction>
+    val userInteractions: List<RoomUserInteraction>,
 )
 
 enum class RoomConnectionState {
@@ -64,3 +64,37 @@ enum class RoomConnectionState {
     FAILED_RECONNECT,
     PENDING
 }
+
+enum class SocketConnectionStatus {
+    NEW_CONNECTION,
+    RECONNECTION_SUCCESS,
+    DUPLICATE_CONNECTION;
+
+    companion object {
+        fun fromString(status: String?): SocketConnectionStatus {
+            return entries.find { it.name == status } ?: NEW_CONNECTION
+        }
+    }
+}
+
+enum class SocketUserState {
+    IDLE,
+    IN_ROOM,
+    WAITING_FOR_ROOM;
+
+    companion object {
+        fun fromString(state: String?): SocketUserState {
+            return entries.find { it.name == state } ?: IDLE
+        }
+    }
+}
+
+data class ConnectionState(
+    val name: String,
+    val connectionStatus: SocketConnectionStatus,
+    val userState: SocketUserState,
+    val message: String,
+    val isDuplicateConnection: Boolean = false,
+    val existingSocketId: String? = null,
+    val currentSocketId: String? = null,
+)

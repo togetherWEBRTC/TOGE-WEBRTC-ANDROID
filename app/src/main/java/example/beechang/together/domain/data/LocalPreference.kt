@@ -10,6 +10,7 @@ interface LocalPreference {
     var profileUrl: String
     var loginState: String
     var accessTokenIat: Long
+    var sessionId: String
 
     val accessTokenFlow: Flow<String>
     val refreshTokenFlow: Flow<String>

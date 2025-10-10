@@ -50,10 +50,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import android.os.Build
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.zIndex
 import example.beechang.together.R
 import example.beechang.together.domain.data.TogeError
 import example.beechang.together.domain.model.InquiryCategory
@@ -63,6 +61,7 @@ import example.beechang.together.ui.component.bottombar.HomeBottomBar
 import example.beechang.together.ui.component.bottomsheet.InquiryBottomSheet
 import example.beechang.together.ui.component.button.TogeFloatingButtonWithIcon
 import example.beechang.together.ui.component.card.TogePermissionItem
+import example.beechang.together.ui.component.dialog.TogeDialog
 import example.beechang.together.ui.component.scaffold.TogeScaffold
 import example.beechang.together.ui.component.snackbar.TogeSnackbarHost
 import example.beechang.together.ui.component.text.TogeClickableText
@@ -160,6 +159,12 @@ fun HomeRouter(
         onEventCreateInquiry = { category, content ->
             homeViewModel.onEvent(HomeEvent.CreateInquiry(category, content))
         },
+        onEventDismissDuplicateConnectionDialog = {
+            homeViewModel.onEvent(HomeEvent.DismissDuplicateConnectionDialog)
+        },
+        onEventHandleDuplicateConnectionChoice = { forceDisconnectExisting ->
+            homeViewModel.onEvent(HomeEvent.HandleDuplicateConnectionChoice(forceDisconnectExisting))
+        },
         /* NAVIGATION */
         onMoveToLogin = { navController.navigate(UserNavDestination.LOGIN) },
         onMoveToMyPage = { navController.navigate(UserNavDestination.MYPAGE) }
@@ -180,6 +185,8 @@ fun HomeScreen(
     onEventEnterRoom: () -> Unit = {},
     onEventCreateRoom: () -> Unit = {},
     onEventCreateInquiry: (InquiryCategory, String/*content*/) -> Unit = { _, _ -> },
+    onEventDismissDuplicateConnectionDialog: () -> Unit = {},
+    onEventHandleDuplicateConnectionChoice: (Boolean/*forceDisconnectExisting*/) -> Unit = {},
     /* NAVIGATION */
     onMoveToLogin: () -> Unit = {},
     onMoveToMyPage: () -> Unit = {},
@@ -216,6 +223,22 @@ fun HomeScreen(
             }
         }
     }
+
+    TogeDialog(
+        isShowDialog = state.showDuplicateConnectionDialog,
+        title = stringResource(R.string.duplicate_connection_title),
+        content = stringResource(R.string.duplicate_connection_message),
+        confirmButtonText = stringResource(R.string.disconnect_existing_connection),
+        dismissButtonText = stringResource(R.string.cancel),
+        onConfirm = {
+            onEventHandleDuplicateConnectionChoice(true)
+        },
+        onDismiss = {
+            onEventDismissDuplicateConnectionDialog()
+        },
+        dismissOnBackPress = false,
+        dismissOnClickOutside = false
+    )
 
     InquiryBottomSheet(
         isShow = showInquiryBottomSheet,

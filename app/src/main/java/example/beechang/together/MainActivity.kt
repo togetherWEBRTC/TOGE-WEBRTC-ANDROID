@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch {
                 try {
                     RemoteConfigManager.init()
+                    appEventViewModel.generateSessionId()
                 } catch (e: Exception) {
                     Log.e("MainActivity", "RemoteConfig Failed : ", e)
                 } finally {

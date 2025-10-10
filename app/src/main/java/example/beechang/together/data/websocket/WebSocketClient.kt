@@ -9,7 +9,7 @@ interface WebSocketClient {
     var isConnected: Boolean
     val eventFlow: Flow<WebSocketEventResponse>
     val connectionStateFlow: Flow<WebSocketConnectionState>
-    suspend fun connect(token: String): Boolean
+    suspend fun connect(token: String, sessionId: String): Boolean
     suspend fun disconnect(): Boolean
     suspend fun <RESP : Any> emitWithAck(
         event: String,
