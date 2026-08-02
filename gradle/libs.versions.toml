@@ -2,9 +2,9 @@
 # App Config
 app-application-id = "example.beechang.together"
 app-min-sdk = "28"
-app-target-sdk = "35"
-app-version-code = "6"
-app-version-name = "1.02.02"
+app-target-sdk = "36"
+app-version-code = "7"
+app-version-name = "1.02.03"
 
 # WebRTC Lib Local Path
 webrtcJarPath = "libs/libwebrtc.jar"
